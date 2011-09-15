@@ -40,8 +40,18 @@ function-based counterparts.
 This means that if you have tried function based generic views in the past and
 found them lacking, you should not think of class-based generic views as
 simply a class-based equivelant, but more of a clean break and fresh approach
-to solving the original problems that any generic views in general want to
+to solving the original problems that generic views, in general, try to
 solve.
+
+The toolkit of base classes and mixins that Django uses to build
+class-based generic views are built for maximum flexibility, and have such have
+many hooks in the form of default method implementations and attributes that
+you are unlikely to be concerned with. For example instead of limiting you to
+a class based attribute for a form_class, the implementation uses a get_form
+method, which calls a get_form_class method, which in its default
+implementation just returns the form_class attribute of the class. These steps
+seem to add hollow complexity to the classes, but without them, more advanced
+designs would be limited.
 
 Using class-based views
 -----------------------
@@ -50,7 +60,7 @@ Class based views allow you to separate the code that responds to different
 HTTP methods into different methods in a class instead as conditionally
 branching code inside a single function.
 
-So where code in a view function to handle HTTP GET would look something like::
+So where the code to handle HTTP GET in a view function would look something like::
 
     def my_view(request):
         if request.method == 'GET':
@@ -96,7 +106,20 @@ perform its job, class attributes are useful in any class-based design approach
 and there are two ways to configure class attributes.
 
 The first is the standard Python way of subclassing and overriding attributes
-and methods in the subclass.::
+and methods in the subclass. So that if your parent class had an attribute::
+
+
+    from django.views.base import View
+
+    class MyView(View):
+
+        greeting = "Good Day"
+
+        def get(request):
+            <view logic>
+            return <Response>
+
+You can override that in a subclass::
 
     class MyOtherView(MyView):
         greeting = "Morning to ya"
@@ -112,6 +135,64 @@ as keyword arguments to the as_view call in the URLconf.::
     While your class is instantiated for each request dispatched to it, class
     attributes set through the ``as_view`` entry point are configured only once
     at the time your URLs are imported.
+
+Using mixins
+------------
+
+Mixins are a form of multiple inheritence, where behaviors and attributes of
+multiple parent classes can be combined.
+
+For example, in the generic class-based views, there is a mixin called
+TemplateResponseMixin whose primary purpose is to define the method
+render_to_response. When combined with the behavior of the View base class, you
+have a class that will dispatch requests to the right methods, and has a render
+to response method that uses a "template_name" and returns a TemplateResponse.
+
+Mixins are an excellent way of reusing code across multiple classes, but they come
+with some cost. The more your code is scattered among mixins, the harder it
+will be to read a child class and know what exactly it is doing, and the harder
+it will be to know which methods from which mixins to override if you are using
+someone elses mixins.
+
+Handling forms with class-based views
+-------------------------------------
+
+A basic function-based view that handles forms may look something like this::
+
+    def myview(request):
+
+        if request.method == "POST":
+            form = MyForm(initial={'key':value}, data=request.POST)
+            if form.is_valid():
+                <process form cleaned data>
+                return HttpResponseRedirect(...)
+        else:
+            form = MyForm()
+
+        return render(...)
+
+a class-based view to handle forms might look like::
+
+    class MyFormView(View):
+
+        form_class = MyDjangoForm
+        initial = {}
+
+        def get(self, request, *args, **kwargs):
+            form = self.form_class(initial=self.initial)
+            return render(...)
+
+        def post(self, request, *args, **kwargs)
+            form = self.form_class(initial=self.initial, data=self.request.POST)
+            if form.is_valid():
+                <process form cleaned data>
+                return HttpResponseRedirect(...)
+
+This is a very simple case, but you can see that you would then have the option
+of passing in a form_class via URLconf configuration, or subclassing and only
+overriding the post method.
+
+
 
 Decorating class-based views
 ============================
