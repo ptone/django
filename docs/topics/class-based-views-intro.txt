@@ -13,7 +13,7 @@ Class-based views have certain differences and advantages when compared to
 function-based views:
 
     * Organization of code related to specific HTTP methods (get, post, etc)
-      can be done with separate functions instead of conditional branching
+      can be addressed by separate methods instead of conditional branching
       logic.
     * Object oriented techniques such as mixins (multiple inheritance) can be
       used to factor code more efficiently into reusable components.
@@ -21,44 +21,51 @@ function-based views:
 The relationship and history of generic views, class-based views, and class-based generic views
 -----------------------------------------------------------------------------------------------
 
-In the beginning there were only view functions, early on it was recognized
+In the beginning there was only the view function contract, Django passes your
+fuction an HTTPrequest, and expects back and HTTPresponse.
+
+This was the extent of what Django provided.
+
+Early on it was recognized
 that there were common idioms and patterns found in view development and
 function-based generic views were introduced in Django X.X to abstract these
-and ease view development.
+and ease view development for the common cases.
 
 The problem with function-based generic views is that while they covered the
 simple cases well, there was no way to extend or customize them beyond some
 simple configuration options, limiting their usefulness in many real-world
 applications.
 
-Class-based generic views have the same objective as function-based generic
-views, to make view development easier. However, the way the solution is
-implemented, through the use of mixins, provides a toolkit that results in
-class-based generic views being more extensible and flexible than their
-function-based counterparts.
+Class-based generic views were created with the same objective as
+function-based generic views, to make view development easier. However, the way
+the solution is implemented, through the use of mixins, provides a toolkit that
+results in class-based generic views being more extensible and flexible than
+their function-based counterparts.
 
 This means that if you have tried function based generic views in the past and
 found them lacking, you should not think of class-based generic views as
-simply a class-based equivelant, but more of a clean break and fresh approach
-to solving the original problems that generic views, in general, try to
+simply a class-based equivelant, but more a fresh approach
+to solving the original problems that generic views, in general, were meant to
 solve.
 
-The toolkit of base classes and mixins that Django uses to build
-class-based generic views are built for maximum flexibility, and have such have
-many hooks in the form of default method implementations and attributes that
-you are unlikely to be concerned with. For example instead of limiting you to
-a class based attribute for a form_class, the implementation uses a get_form
-method, which calls a get_form_class method, which in its default
-implementation just returns the form_class attribute of the class. These steps
-seem to add hollow complexity to the classes, but without them, more advanced
-designs would be limited.
+The toolkit of base classes and mixins that Django uses to build class-based
+generic views are built for maximum flexibility, and as such have many hooks in
+the form of default method implementations and attributes that you are unlikely
+to be concerned with in the generic use cases. For example, instead of limiting
+you to a class based attribute for ``form_class``, the implementation uses
+a ``get_form`` method, which calls a ``get_form_class`` method, which in its
+default implementation just returns the ``form_class`` attribute of the class.
+This gives you several options for specifying what form to use from a simple
+attribute, to a fully dynamic callable hook. These options seem to add hollow
+complexity for simple situations, but without them, more advanced designs would
+be limited.
 
 Using class-based views
 -----------------------
 
-Class based views allow you to separate the code that responds to different
-HTTP methods into different methods in a class instead as conditionally
-branching code inside a single function.
+At its core, a class-based view allows you to respond to different HTTP request
+methods with different class instance methods, instead as conditionally
+branching code inside a single view function.
 
 So where the code to handle HTTP GET in a view function would look something like::
 
@@ -73,18 +80,17 @@ in a class-based view would become::
 
     class MyView(View):
 
-        greeting = "Good Day"
-
         def get(request):
             <view logic>
             return <Response>
 
-Because Django's URL resolver expects to send the request and associated arguments
-to a callable function, not a class, all class-based views have an "as_view"
-class method which serves as the callable entry point to your class. The "as_view"
-entry point then simply hands the request to a dispatcher method which checks to see
-if the the class-based view has a method that matches the HTTP method of the
-request.::
+Because Django's URL resolver expects to send the request and associated
+arguments to a callable function, not a class, class-based views have an
+"as_view" class method which serves as the callable entry point to your class.
+The "as_view" entry point creates an instance of your class and calls its
+dispatch method. This dispatch method looks at the request to determine whether
+it is a GET, POST, etc, and relays the request to a matching method if one is
+defined and otherwise raises HttpResponseNotAllowed.::
 
     # urls.py
     from django.conf.urls.defaults import *
@@ -98,15 +104,16 @@ request.::
 It is worth noting that what your method returns is
 identical to what you return from a function-based view, namely some form of
 HTTPResponse. This means that http shortcuts
-(https://docs.djangoproject.com/en/1.3/topics/http/shortcuts/) are valid to use
-inside a class-based view.
+(https://docs.djangoproject.com/en/1.3/topics/http/shortcuts/) or
+TemplateResponse objects are valid to use inside a class-based view.
 
 While a minimal class-based view does not require any class attributes to
-perform its job, class attributes are useful in any class-based design approach
-and there are two ways to configure class attributes.
+perform its job, class attributes are useful in many class-based designs 
+and there are two ways to configure or set class attributes.
 
 The first is the standard Python way of subclassing and overriding attributes
-and methods in the subclass. So that if your parent class had an attribute::
+and methods in the subclass. So that if your parent class had an attribute
+``greeting`` like this::
 
 
     from django.views.base import View
@@ -124,7 +131,7 @@ You can override that in a subclass::
     class MyOtherView(MyView):
         greeting = "Morning to ya"
 
-Another approach is to configure class attributes
+Another option is to configure class attributes
 as keyword arguments to the as_view call in the URLconf.::
 
     urlpatterns = patterns('',
@@ -144,15 +151,18 @@ multiple parent classes can be combined.
 
 For example, in the generic class-based views, there is a mixin called
 TemplateResponseMixin whose primary purpose is to define the method
-render_to_response. When combined with the behavior of the View base class, you
-have a class that will dispatch requests to the right methods, and has a render
-to response method that uses a "template_name" and returns a TemplateResponse.
+render_to_response. When combined with the behavior of the View base class, the
+result is a TemplateView class that will dispatch requests to the appropriate
+matching methods (a behavior defined in the View base class), and has
+a ``render_to_response`` method that uses a ``template_name`` attribute to
+return a TemplateResponse object (a behavior defined in the
+TemplateResponseMixin).
 
-Mixins are an excellent way of reusing code across multiple classes, but they come
-with some cost. The more your code is scattered among mixins, the harder it
-will be to read a child class and know what exactly it is doing, and the harder
-it will be to know which methods from which mixins to override if you are using
-someone elses mixins.
+Mixins are an excellent way of reusing code across multiple classes, but they
+come with some cost. The more your code is scattered among mixins, the harder
+it will be to read a child class and know what exactly it is doing, and the
+harder it will be to know which methods from which mixins to override if you
+are subclassing something that has a deep inheritance tree.
 
 Handling forms with class-based views
 -------------------------------------
