@@ -91,26 +91,26 @@ class HTTPConditionMixin(ViewDecoratorMixin):
         if ((self.if_none_match and (self.get_etag() in self.etags or
                 "*" in self.etags and self.get_etag())) and
                 (not self.if_modified_since or
-                    (self.get_last_modified and self.if_modified_since and
-                    self.get_last_modified <= self.if_modified_since))):
+                    (self.get_last_modified() and self.if_modified_since and
+                    self.get_last_modified() <= self.if_modified_since))):
             if self.request.method in ("GET", "HEAD"):
                 return HttpResponseNotModified()
             else:
                 return self.precondition_failed()
-        elif self.if_match and ((not self.get_etag and "*" in self.etags) or
-                (self.get_etag and self.get_etag not in self.etags)):
+        elif self.if_match and ((not self.get_etag() and "*" in self.etags) or
+                (self.get_etag() and self.get_etag() not in self.etags)):
             return self.precondition_failed()
         elif (not self.if_none_match and self.request.method == "GET" and
-                self.get_last_modified and self.if_modified_since and
-                self.get_last_modified <= self.if_modified_since):
+                self.get_last_modified() and self.if_modified_since and
+                self.get_last_modified() <= self.if_modified_since):
             return HttpResponseNotModified()
 
     def set_headers(self, response):
         # Set relevant headers on the response if they don't already exist.
-        if self.get_last_modified and not response.has_header('Last-Modified'):
-            response['Last-Modified'] = http_date(self.get_last_modified)
-        if self.get_etag and not response.has_header('ETag'):
-            response['ETag'] = quote_etag(self.get_etag)
+        if self.get_last_modified() and not response.has_header('Last-Modified'):
+            response['Last-Modified'] = http_date(self.get_last_modified())
+        if self.get_etag() and not response.has_header('ETag'):
+            response['ETag'] = quote_etag(self.get_etag())
 
     def dispatch(self, request, *args, **kwargs):
         response = None
