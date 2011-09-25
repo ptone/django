@@ -2,7 +2,7 @@
 Mixin classes for modifying HTTP headers
 """
 
-from django.http import HttpResponseNotAllowed, HttpResponseNotModified, HttpResponse
+from django.http import HttpResponseNotModified, HttpResponse
 from django.utils.decorators import ViewDecoratorMixin
 from django.utils.http import http_date, parse_http_date_safe, parse_etags, quote_etag
 from django.utils.log import getLogger
@@ -11,8 +11,8 @@ logger = getLogger('django.request')
 
 class HTTPConditionMixin(ViewDecoratorMixin):
 
-    self.etag = None
-    self.last_modified = None
+    etag = None
+    last_modified = None
 
     def __init__(self):
         self.if_modified_since = None
@@ -41,17 +41,25 @@ class HTTPConditionMixin(ViewDecoratorMixin):
                 self.if_match = None
 
     def get_etag(self):
+        """
+        returns the resources Etag
+        """
+
         return self.etag
 
     def get_last_modified(self):
+        """
+        returns the resources last modified date
+        """
+
         return self.last_modified
 
     def check_etags(self):
-        if (self.if_none_match and (self.get_etag() in self.etags)):
-            return False
+        if ((self.if_none_match and (self.get_etag() in self.etags)) or ("*" in self.etags and self.get_etag())):
+            return True
         if (self.if_match and not (self.get_etag() in self.etags)):
-            return False
-        return True
+            return True
+        return False
 
     def check_last_modified(self):
         if self.get_last_modified() is None:
@@ -62,35 +70,69 @@ class HTTPConditionMixin(ViewDecoratorMixin):
         return False
 
     def precondition_failed(self):
-        logger.warning('Precondition Failed: %s' % request.path,
+        logger.warning('Precondition Failed: %s' % self.request.path,
             extra={
                 'status_code': 412,
-                'request': request
+                'request': self.request
             }
         )
         return HttpResponse(status=412)
 
     def test_conditions(self):
-        pass
-        # if conditions pass, return  HttpResponseNotModified
-        # otherwise return return precondition_failed()
+        # Currently this completely mimics the logic flow of the original decorator
+        # ideally it would be nice to see a clearer factoring with methods if
+        # possible
         #
+        if ((self.if_match and (self.if_modified_since or self.if_none_match)) or
+            (self.if_match and self.if_none_match)):
+            # we only get here if an invalid set of conditions are
+            # specified
+            return None
+        if ((self.if_none_match and (self.get_etag() in self.etags or
+                "*" in self.etags and self.get_etag())) and
+                (not self.if_modified_since or
+                    (self.get_last_modified and self.if_modified_since and
+                    self.get_last_modified <= self.if_modified_since))):
+            if self.request.method in ("GET", "HEAD"):
+                return HttpResponseNotModified()
+            else:
+                return self.precondition_failed()
+        elif self.if_match and ((not self.get_etag and "*" in self.etags) or
+                (self.get_etag and self.get_etag not in self.etags)):
+            return self.precondition_failed()
+        elif (not self.if_none_match and self.request.method == "GET" and
+                self.get_last_modified and self.if_modified_since and
+                self.get_last_modified <= self.if_modified_since):
+            return HttpResponseNotModified()
 
-    def dispatch(self):
+    def set_headers(self, response):
+        # Set relevant headers on the response if they don't already exist.
+        if self.get_last_modified and not response.has_header('Last-Modified'):
+            response['Last-Modified'] = http_date(self.get_last_modified)
+        if self.get_etag and not response.has_header('ETag'):
+            response['ETag'] = quote_etag(self.get_etag)
+
+    def dispatch(self, request, *args, **kwargs):
         response = None
         response = self.test_conditions()
         if response is None:
-            pass
-            # want to return dispatch of Super of View subclass - not mixin
-            # note that this does not effect use of mixin as decorator as much
-            # as it effects mixin as mixn ;-)
+            response = super(HTTPConditionMixin, self).dispatch(
+                    request, *args, **kwargs)
 
-        # Set relevant headers on the response if they don't already exist.
-        if res_last_modified and not response.has_header('Last-Modified'):
-            response['Last-Modified'] = http_date(res_last_modified)
-        if res_etag and not response.has_header('ETag'):
-            response['ETag'] = quote_etag(res_etag)
+        self.set_headers(response)
+        return response
 
+    def decorate_wrapped(self, view, request, *args, **kwargs):
+        if 'etag_func' in kwargs:
+            self.etag = kwargs['etag_func'](request, *args, **kwargs)
+        if 'last_modified_func' in kwargs:
+            self.last_modified = kwargs['last_modified_func'](request, *args,
+                    **kwargs)
+        response = None
+        response = self.test_conditions()
+        if response is None:
+            response = view(request, *args, **kwargs)
+        self.set_headers(response)
         return response
 
 class EtagMixin(ViewDecoratorMixin):
