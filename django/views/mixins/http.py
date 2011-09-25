@@ -2,6 +2,7 @@
 Mixin classes for modifying HTTP headers
 """
 
+from django.http import HttpResponseNotAllowed, HttpResponseNotModified, HttpResponse
 from django.utils.decorators import ViewDecoratorMixin
 from django.utils.http import http_date, parse_http_date_safe, parse_etags, quote_etag
 from django.utils.log import getLogger
@@ -71,13 +72,18 @@ class HTTPConditionMixin(ViewDecoratorMixin):
 
     def test_conditions(self):
         pass
+        # if conditions pass, return  HttpResponseNotModified
+        # otherwise return return precondition_failed()
+        #
 
     def dispatch(self):
         response = None
         response = self.test_conditions()
         if response is None:
+            pass
             # want to return dispatch of Super of View subclass - not mixin
-            response = self.render_to_response(self)
+            # note that this does not effect use of mixin as decorator as much
+            # as it effects mixin as mixn ;-)
 
         # Set relevant headers on the response if they don't already exist.
         if res_last_modified and not response.has_header('Last-Modified'):
@@ -85,7 +91,7 @@ class HTTPConditionMixin(ViewDecoratorMixin):
         if res_etag and not response.has_header('ETag'):
             response['ETag'] = quote_etag(res_etag)
 
-
+        return response
 
 class EtagMixin(ViewDecoratorMixin):
     """
