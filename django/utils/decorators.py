@@ -10,6 +10,13 @@ class classonlymethod(classmethod):
             raise AttributeError("This method is available only on the view class.")
         return super(classonlymethod, self).__get__(instance, owner)
 
+def available_attrs(fn):
+    """
+    Return the list of functools-wrappable attributes on a callable.
+    This is required as a workaround for http://bugs.python.org/issue3445.
+    """
+    return tuple(a for a in WRAPPER_ASSIGNMENTS if hasattr(fn, a))
+
 def method_decorator(decorator):
     """
     Converts a function decorator into a method decorator
@@ -65,14 +72,6 @@ def decorator_from_middleware(middleware_class):
     is created with no params passed.
     """
     return make_middleware_decorator(middleware_class)()
-
-
-def available_attrs(fn):
-    """
-    Return the list of functools-wrappable attributes on a callable.
-    This is required as a workaround for http://bugs.python.org/issue3445.
-    """
-    return tuple(a for a in WRAPPER_ASSIGNMENTS if hasattr(fn, a))
 
 
 def make_middleware_decorator(middleware_class):
