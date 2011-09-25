@@ -43,7 +43,7 @@ def method_decorator(decorator):
         update_wrapper(_wrapper, func)
 
         return _wrapper
-    update_wrapper(_dec, decorator)
+    update_wrapper(_dec, decorator, available_attrs(decorator))
     # Change the name to aid debugging.
     _dec.__name__ = 'method_decorator(%s)' % decorator.__name__
     return _dec
@@ -137,7 +137,7 @@ class BaseDecoratorMixin(object):
 
         if args and isinstance(args[0], collections.Callable):
             return instance.decorate(args[0], args=args[1:], kwargs=kwargs)
-        return partial(instance.decorate, args=args, kwargs=kwargs)
+        return wraps(instance.decorate)(partial(instance.decorate, args=args, kwargs=kwargs))
 
 
 class WrappedDecoratorMixin(BaseDecoratorMixin):
