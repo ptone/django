@@ -1,6 +1,35 @@
 "Functions that help with dynamically creating decorators for views."
 
-from functools import wraps, update_wrapper, WRAPPER_ASSIGNMENTS
+import collections
+from functools import partial, wraps, update_wrapper, WRAPPER_ASSIGNMENTS
+
+
+class BaseDecoratorMixin(object):
+    """
+    Base Class for Decorator Mixins. This allows us to use Mixins for CBVs
+    and utilize the same class as a decorator using as_decorator for
+    function based views.
+    """
+
+    def decorate(self, function, args=None, kwargs=None):
+        """
+        Implements the Actual Logic of the Decorator. This
+        should return a callable.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def as_decorator(cls, *args, **kwargs):
+        """
+        Wrapper method that allows a Class Based Decorator Mixin to
+        be called as a decorator.
+        """
+        instance = cls()
+
+        if args and isinstance(args[0], collections.Callable):
+            return instance.decorate(args[0])
+        return partial(instance.decorate, args=args, kwargs=kwargs)
+
 
 class classonlymethod(classmethod):
     def __get__(self, instance, owner):
