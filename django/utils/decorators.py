@@ -4,69 +4,6 @@ import collections
 from functools import partial, wraps, update_wrapper, WRAPPER_ASSIGNMENTS
 
 
-class BaseDecoratorMixin(object):
-    """
-    Base Class for Decorator Mixins. This allows us to use Mixins for CBVs
-    and utilize the same class as a decorator using as_decorator for
-    function based views.
-    """
-
-    def decorate(self, function, args=None, kwargs=None):
-        """
-        Implements the Actual Logic of the Decorator. This
-        should return a callable.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def as_decorator(cls, *args, **kwargs):
-        """
-        Wrapper method that allows a Class Based Decorator Mixin to
-        be called as a decorator.
-        """
-        instance = cls()
-
-        if args and isinstance(args[0], collections.Callable):
-            return instance.decorate(args[0])
-        return partial(instance.decorate, args=args, kwargs=kwargs)
-
-
-class WrappedDecoratorMixin(BaseDecoratorMixin):
-    """
-    A Special subclass of BaseDecoratorMixin that deals specifically with
-    wrapping a function when we need to return a wrapped function.
-    """
-
-    def decorate_wrapped(self, funciton, *args, **kwargs):
-        """
-        Implements the actual logic of what should happen when this function is
-        wrapped.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def decorate(cls, function, args=None, kwargs=None):
-        for key in kwargs:
-            if not hasattr(cls, key):
-                raise TypeError(u"%s() received an invalid keyword %r" % (
-                    cls.__name__, key))
-
-        # We don't have access to request yet, so we swap out the
-        # view function for a wrapped version that will.
-        @wraps(function)
-        def _wrapper(*wrapped_args, **wrapped_kwargs):
-            instance = cls()
-            
-            # This is Kind of Ugly, but we Don't want to use __init__ since this
-            # can be Mixed in with a View and we Don't want this then.
-            instance.args = args
-            for key, value in kwargs.iteritems():
-                setattr(instance, key, value)
-                 
-            return instance.decorate_wrapped(function, *wrapped_args, **wrapped_kwargs)
-        return _wrapper
-
-
 class classonlymethod(classmethod):
     def __get__(self, instance, owner):
         if instance is not None:
@@ -175,3 +112,72 @@ def make_middleware_decorator(middleware_class):
             return _wrapped_view
         return _decorator
     return _make_decorator
+
+
+class BaseDecoratorMixin(object):
+    """
+    Base Class for Decorator Mixins. This allows us to use Mixins for CBVs
+    and utilize the same class as a decorator using as_decorator for
+    function based views.
+    """
+
+    def decorate(self, function, args, kwargs):
+        """
+        Implements the Actual Logic of the Decorator. This
+        should return a callable.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def as_decorator(cls, *args, **kwargs):
+        """
+        Wrapper method that allows a Class Based Decorator Mixin to
+        be called as a decorator.
+        """
+        instance = cls()
+
+        if args and isinstance(args[0], collections.Callable):
+            return instance.decorate(args[0], args=args[1:], kwargs=kwargs)
+        return partial(instance.decorate, args=args, kwargs=kwargs)
+
+
+class WrappedDecoratorMixin(BaseDecoratorMixin):
+    """
+    A Special subclass of BaseDecoratorMixin that deals specifically with
+    wrapping a function when we need to return a wrapped function.
+    """
+
+    def decorate_wrapped(self, funciton, *args, **kwargs):
+        """
+        Implements the actual logic of what should happen when this function is
+        wrapped.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def decorate(cls, function, args, kwargs):
+        for key in kwargs:
+            if not hasattr(cls, key):
+                raise TypeError(u"%s() received an invalid keyword %r" % (
+                    cls.__name__, key))
+
+        # We don't have access to request yet, so we swap out the
+        # view function for a wrapped version that will.
+        @wraps(function, assigned=available_attrs(function))
+        def _wrapper(*wrapped_args, **wrapped_kwargs):
+            instance = cls()
+            
+            # This is Kind of Ugly, but we Don't want to use __init__ since this
+            # can be Mixed in with a View and we Don't want this then.
+            instance.args = args
+            for key, value in kwargs.iteritems():
+                setattr(instance, key, value)
+                 
+            return instance.decorate_wrapped(function, *wrapped_args, **wrapped_kwargs)
+        return _wrapper
+
+
+class ViewDecoratorMixin(WrappedDecoratorMixin):
+
+    def dispatch(self, *args, **kwargs):
+        return self.decorate_wrapped(super(ViewDecoratorMixin, self).dispatch, *args, **kwargs)
