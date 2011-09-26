@@ -9,7 +9,7 @@ from django.utils.log import getLogger
 
 logger = getLogger('django.request')
 
-class HTTPConditionMixin(ViewDecoratorMixin):
+class HttpConditionMixin(ViewDecoratorMixin):
 
     etag = None
     last_modified = None
@@ -123,6 +123,8 @@ class HTTPConditionMixin(ViewDecoratorMixin):
         return response
 
     def decorate_wrapped(self, view, request, *args, **kwargs):
+        self.request = request
+        print request
         if 'etag_func' in kwargs:
             self.etag = kwargs['etag_func'](request, *args, **kwargs)
         if 'last_modified_func' in kwargs:
