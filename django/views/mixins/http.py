@@ -1,6 +1,9 @@
 """
 Mixin classes for modifying HTTP headers
 """
+import collections
+from calendar import timegm
+from functools import partial, wraps
 
 from django.http import HttpResponseNotModified, HttpResponse
 from django.utils.decorators import ViewDecoratorMixin
@@ -14,11 +17,12 @@ class HttpConditionMixin(ViewDecoratorMixin):
     etag = None
     last_modified = None
 
-    def __init__(self):
-        self.if_modified_since = None
-        self.if_match = None
-        self.if_none_match = None
-        self.etags = []
+    if_modified_since = None
+    if_match = None
+    if_none_match = None
+    etags = []
+    last_modified_func = None
+    etag_func = None
 
     def get_http_headers(self):
         # Get HTTP request headers
@@ -44,14 +48,20 @@ class HttpConditionMixin(ViewDecoratorMixin):
         """
         returns the resources Etag
         """
-
+        if hasattr(self, 'etag_func') and self.etag_func:
+            return self.etag_func(self.request, *self.request_args, **self.request_kwargs)
         return self.etag
 
     def get_last_modified(self):
         """
         returns the resources last modified date
         """
-
+        if hasattr(self, 'last_modified_func') and self.last_modified_func:
+            dt = self.last_modified_func(self.request, *self.request_args, **self.request_kwargs)
+            if dt:
+                self.last_modified = timegm(dt.utctimetuple())
+            else:
+                self.last_modified = None
         return self.last_modified
 
     def check_etags(self):
@@ -114,23 +124,20 @@ class HttpConditionMixin(ViewDecoratorMixin):
 
     def dispatch(self, request, *args, **kwargs):
         response = None
+        self.get_http_headers()
         response = self.test_conditions()
         if response is None:
-            response = super(HTTPConditionMixin, self).dispatch(
+            response = super(HttpConditionMixin, self).dispatch(
                     request, *args, **kwargs)
-
         self.set_headers(response)
         return response
 
     def decorate_wrapped(self, view, request, *args, **kwargs):
         self.request = request
-        print request
-        if 'etag_func' in kwargs:
-            self.etag = kwargs['etag_func'](request, *args, **kwargs)
-        if 'last_modified_func' in kwargs:
-            self.last_modified = kwargs['last_modified_func'](request, *args,
-                    **kwargs)
+        self.request_args = args
+        self.request_kwargs = kwargs
         response = None
+        self.get_http_headers()
         response = self.test_conditions()
         if response is None:
             response = view(request, *args, **kwargs)
