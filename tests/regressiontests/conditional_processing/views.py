@@ -9,7 +9,7 @@ from .models import FULL_RESPONSE, LAST_MODIFIED, ETAG
 
 def index(request):
     return HttpResponse(FULL_RESPONSE)
-index = condition(lambda r: ETAG, lambda r: LAST_MODIFIED)(index)
+index = condition(etag_func=lambda r: ETAG, last_modified_func=lambda r: LAST_MODIFIED)(index)
 
 def last_modified_view1(request):
     return HttpResponse(FULL_RESPONSE)
