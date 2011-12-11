@@ -108,6 +108,7 @@ The view layer
 * **Generic views:**
   :doc:`Overview<topics/class-based-views>` |
   :doc:`Built-in generic views<ref/class-based-views>`
+  :doc:`Built-in generic views reference<ref/class-based-index>`
 
 * **Advanced:**
   :doc:`Generating CSV <howto/outputting-csv>` |
