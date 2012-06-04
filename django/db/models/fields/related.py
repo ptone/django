@@ -660,7 +660,7 @@ def create_many_related_manager(superclass, rel):
                 for obj in objs:
                     if isinstance(obj, self.model):
                         if not router.allow_relation(obj, self.instance):
-                           raise ValueError('Cannot add "%r": instance is on database "%s", value is on database "%s"' %
+                            raise ValueError('Cannot add "%r": instance is on database "%s", value is on database "%s"' %
                                                (obj, self.instance._state.db, obj._state.db))
                         new_ids.add(obj.pk)
                     elif isinstance(obj, Model):
@@ -751,6 +751,7 @@ def create_many_related_manager(superclass, rel):
                     model=self.model, pk_set=None, using=db)
 
     return ManyRelatedManager
+
 
 class ManyRelatedObjectsDescriptor(object):
     # This class provides the functionality that makes the related-object
@@ -860,6 +861,7 @@ class ReverseManyRelatedObjectsDescriptor(object):
         manager.clear()
         manager.add(*value)
 
+
 class ManyToOneRel(object):
     def __init__(self, to, field_name, related_name=None, limit_choices_to=None,
         parent_link=False, on_delete=None):
@@ -930,6 +932,7 @@ class ForeignKey(RelatedField, Field):
         'invalid': _('Model %(model)s with pk %(pk)r does not exist.')
     }
     description = _("Foreign Key (type determined by related field)")
+
     def __init__(self, to, to_field=None, rel_class=ManyToOneRel, **kwargs):
         try:
             to_name = to._meta.object_name.lower()
@@ -1077,12 +1080,14 @@ class OneToOneField(ForeignKey):
         else:
             setattr(instance, self.attname, data)
 
+
 def create_many_to_many_intermediary_model(field, klass):
     from django.db import models
     managed = True
     if isinstance(field.rel.to, six.string_types) and field.rel.to != RECURSIVE_RELATIONSHIP_CONSTANT:
         to_model = field.rel.to
         to = to_model.split('.')[-1]
+
         def set_managed(field, model, cls):
             field.rel.through._meta.managed = model._meta.managed or cls._meta.managed
         add_lazy_relation(klass, field, to_model, set_managed)
@@ -1119,8 +1124,10 @@ def create_many_to_many_intermediary_model(field, klass):
         to: models.ForeignKey(to_model, related_name='%s+' % name, db_tablespace=field.db_tablespace)
     })
 
+
 class ManyToManyField(RelatedField, Field):
     description = _("Many-to-many relationship")
+
     def __init__(self, to, **kwargs):
         try:
             assert not to._meta.abstract, "%s cannot define a relation with abstract class %s" % (self.__class__.__name__, to._meta.object_name)
@@ -1135,7 +1142,7 @@ class ManyToManyField(RelatedField, Field):
         kwargs['rel'] = ManyToManyRel(to,
             related_name=kwargs.pop('related_name', None),
             limit_choices_to=kwargs.pop('limit_choices_to', None),
-            symmetrical=kwargs.pop('symmetrical', to==RECURSIVE_RELATIONSHIP_CONSTANT),
+            symmetrical=kwargs.pop('symmetrical', to == RECURSIVE_RELATIONSHIP_CONSTANT),
             through=kwargs.pop('through', None))
 
         self.db_table = kwargs.pop('db_table', None)
@@ -1166,7 +1173,7 @@ class ManyToManyField(RelatedField, Field):
         if hasattr(self, cache_attr):
             return getattr(self, cache_attr)
         for f in self.rel.through._meta.fields:
-            if hasattr(f,'rel') and f.rel and f.rel.to == related.model:
+            if hasattr(f, 'rel') and f.rel and f.rel.to == related.model:
                 setattr(self, cache_attr, getattr(f, attr))
                 return getattr(self, cache_attr)
 
@@ -1177,7 +1184,7 @@ class ManyToManyField(RelatedField, Field):
             return getattr(self, cache_attr)
         found = False
         for f in self.rel.through._meta.fields:
-            if hasattr(f,'rel') and f.rel and f.rel.to == related.parent_model:
+            if hasattr(f, 'rel') and f.rel and f.rel.to == related.parent_model:
                 if related.model == related.parent_model:
                     # If this is an m2m-intermediate to self,
                     # the first foreign key you find will be
@@ -1222,7 +1229,8 @@ class ManyToManyField(RelatedField, Field):
         # The intermediate m2m model is not auto created if:
         #  1) There is a manually specified intermediate, or
         #  2) The class owning the m2m field is abstract.
-        if not self.rel.through and not cls._meta.abstract:
+        #  3) The class owning the m2m field has been swapped out.
+        if not self.rel.through and not cls._meta.abstract and not cls._meta.swapped:
             self.rel.through = create_many_to_many_intermediary_model(self, cls)
 
         # Add the descriptor for the m2m relation

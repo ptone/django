@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core.management.base import CommandError
 from django.db import models
 
+
 def sql_create(app, style, connection):
     "Returns a list of the CREATE TABLE SQL statements for the given app."
 
@@ -54,6 +55,7 @@ def sql_create(app, style, connection):
 
     return final_output
 
+
 def sql_delete(app, style, connection):
     "Returns a list of the DROP TABLE SQL statements for the given app."
 
@@ -82,7 +84,7 @@ def sql_delete(app, style, connection):
             opts = model._meta
             for f in opts.local_fields:
                 if f.rel and f.rel.to not in to_delete:
-                    references_to_delete.setdefault(f.rel.to, []).append( (model, f) )
+                    references_to_delete.setdefault(f.rel.to, []).append((model, f))
 
             to_delete.add(model)
 
@@ -113,6 +115,7 @@ def sql_flush(style, connection, only_django=False, reset_sequences=True):
     statements = connection.ops.sql_flush(style, tables, seqs)
     return statements
 
+
 def sql_custom(app, style, connection):
     "Returns a list of the custom table modifying SQL statements for the given app."
     output = []
@@ -124,12 +127,14 @@ def sql_custom(app, style, connection):
 
     return output
 
+
 def sql_indexes(app, style, connection):
     "Returns a list of the CREATE INDEX SQL statements for all models in the given app."
     output = []
     for model in app_cache.get_models(app):
         output.extend(connection.creation.sql_indexes_for_model(model, style))
     return output
+
 
 def sql_all(app, style, connection):
     "Returns a list of CREATE TABLE SQL, initial-data inserts, and CREATE INDEX SQL for the given module."

@@ -30,6 +30,11 @@ class InvalidModelTestCase(unittest.TestCase):
         # post_syncdb.receivers = self.sync_receivers
         app_cache.unload_app(app_label="invalid_models_app")
 
+    # Technically, this isn't an override -- TEST_SWAPPED_MODEL must be
+    # set to *something* in order for the test to work. However, it's
+    # easier to set this up as an override than to require every developer
+    # to specify a value in their test settings.
+    @override_settings(TEST_SWAPPED_MODEL='invalid_models.Target')
     def test_invalid_models(self):
         module = app_cache.get_models_module('invalid_models_app')
         count = get_validation_errors(self.stdout, module)

@@ -28,7 +28,7 @@ class Approximate(object):
     def __eq__(self, other):
         if self.val == other:
             return True
-        return round(abs(self.val-other), self.places) == 0
+        return round(abs(self.val - other), self.places) == 0
 
 
 class ContextList(list):
@@ -188,9 +188,11 @@ class override_settings(object):
         if isinstance(test_func, type) and issubclass(test_func, TransactionTestCase):
             original_pre_setup = test_func._pre_setup
             original_post_teardown = test_func._post_teardown
+
             def _pre_setup(innerself):
                 self.enable()
                 original_pre_setup(innerself)
+
             def _post_teardown(innerself):
                 original_post_teardown(innerself)
                 self.disable()

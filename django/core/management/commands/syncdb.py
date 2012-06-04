@@ -70,6 +70,7 @@ class Command(NoArgsCommand):
                 if app._meta.models_module and router.allow_syncdb(db, m)])
             for app in app_cache.loaded_apps
         ]
+
         def model_installed(model):
             opts = model._meta
             converter = connection.introspection.table_name_converter

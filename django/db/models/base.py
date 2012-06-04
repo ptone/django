@@ -242,6 +242,7 @@ class ModelBase(type):
         if opts.order_with_respect_to:
             cls.get_next_in_order = curry(cls._get_next_or_previous_in_order, is_next=True)
             cls.get_previous_in_order = curry(cls._get_next_or_previous_in_order, is_next=False)
+
             # defer creating accessors on the foreign class until we are
             # certain it has been created
             def make_foreign_order_accessors(field, model, cls):
@@ -271,6 +272,7 @@ class ModelBase(type):
                                                   cls.get_absolute_url)
 
         signals.class_prepared.send(sender=cls)
+
 
 class ModelState(object):
     """
@@ -594,7 +596,6 @@ class Model(six.with_metaclass(ModelBase, object)):
             signals.post_save.send(sender=origin, instance=self, created=(not record_exists),
                                    update_fields=update_fields, raw=raw, using=using)
 
-
     save_base.alters_data = True
 
     def delete(self, using=None):
@@ -881,7 +882,6 @@ class Model(six.with_metaclass(ModelBase, object)):
 
         if errors:
             raise ValidationError(errors)
-
 
 
 ############################################
