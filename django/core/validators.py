@@ -41,11 +41,11 @@ class RegexValidator(object):
 
 class URLValidator(RegexValidator):
     regex = re.compile(
-        r'^(?:http|ftp)s?://' # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
-        r'localhost|' #localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-        r'(?::\d+)?' # optional port
+        r'^(?:http|ftp)s?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+        r'localhost|'  # localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+        r'(?::\d+)?'  # optional port
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
     def __call__(self, value):
@@ -57,8 +57,8 @@ class URLValidator(RegexValidator):
                 value = smart_unicode(value)
                 scheme, netloc, path, query, fragment = urlsplit(value)
                 try:
-                    netloc = netloc.encode('idna') # IDN -> ACE
-                except UnicodeError: # invalid domain part
+                    netloc = netloc.encode('idna')  # IDN -> ACE
+                except UnicodeError:  # invalid domain part
                     raise e
                 url = urlunsplit((scheme, netloc, path, query, fragment))
                 super(URLValidator, self).__call__(url)
@@ -73,6 +73,7 @@ def validate_integer(value):
         int(value)
     except (ValueError, TypeError):
         raise ValidationError('')
+
 
 class EmailValidator(RegexValidator):
 
@@ -105,9 +106,11 @@ validate_slug = RegexValidator(slug_re, _("Enter a valid 'slug' consisting of le
 ipv4_re = re.compile(r'^(25[0-5]|2[0-4]\d|[0-1]?\d?\d)(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}$')
 validate_ipv4_address = RegexValidator(ipv4_re, _('Enter a valid IPv4 address.'), 'invalid')
 
+
 def validate_ipv6_address(value):
     if not is_valid_ipv6_address(value):
         raise ValidationError(_('Enter a valid IPv6 address.'), code='invalid')
+
 
 def validate_ipv46_address(value):
     try:
@@ -123,6 +126,7 @@ ip_address_validator_map = {
     'ipv4': ([validate_ipv4_address], _('Enter a valid IPv4 address.')),
     'ipv6': ([validate_ipv6_address], _('Enter a valid IPv6 address.')),
 }
+
 
 def ip_address_validators(protocol, unpack_ipv4):
     """
@@ -163,15 +167,18 @@ class BaseValidator(object):
                 params=params,
             )
 
+
 class MaxValueValidator(BaseValidator):
     compare = lambda self, a, b: a > b
     message = _('Ensure this value is less than or equal to %(limit_value)s.')
     code = 'max_value'
 
+
 class MinValueValidator(BaseValidator):
     compare = lambda self, a, b: a < b
     message = _('Ensure this value is greater than or equal to %(limit_value)s.')
     code = 'min_value'
+
 
 class MinLengthValidator(BaseValidator):
     compare = lambda self, a, b: a < b
@@ -179,9 +186,9 @@ class MinLengthValidator(BaseValidator):
     message = _('Ensure this value has at least %(limit_value)d characters (it has %(show_value)d).')
     code = 'min_length'
 
+
 class MaxLengthValidator(BaseValidator):
     compare = lambda self, a, b: a > b
-    clean   = lambda self, x: len(x)
-    message = _('Ensure this value has at most %(limit_value)d characters (it has %(show_value)d).')
+    clean = lambda self, x: len(x)
+    message = _(u'Ensure this value has at most %(limit_value)d characters (it has %(show_value)d).')
     code = 'max_length'
-
