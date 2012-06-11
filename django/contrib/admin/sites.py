@@ -1,4 +1,6 @@
 from functools import update_wrapper
+
+from django import apps
 from django.http import Http404, HttpResponseRedirect
 from django.contrib.admin import ModelAdmin, actions
 from django.contrib.admin.forms import AdminAuthenticationForm
@@ -363,7 +365,7 @@ class AdminSite(object):
                         app_dict[app_label]['models'].append(model_dict)
                     else:
                         app_dict[app_label] = {
-                            'name': app_label.title(),
+                            'name': apps.find_app(app_label)._meta.verbose_name,
                             'app_url': reverse('admin:app_list', kwargs={'app_label': app_label}, current_app=self.name),
                             'has_module_perms': has_module_perms,
                             'models': [model_dict],
@@ -390,6 +392,7 @@ class AdminSite(object):
         user = request.user
         has_module_perms = user.has_module_perms(app_label)
         app_dict = {}
+        app = apps.find_app(app_label)
         for model, model_admin in self._registry.items():
             if app_label == model._meta.app_label:
                 if has_module_perms:
@@ -420,7 +423,7 @@ class AdminSite(object):
                             # something to display, add in the necessary meta
                             # information.
                             app_dict = {
-                                'name': app_label.title(),
+                                'name': app._meta.verbose_name,
                                 'app_url': '',
                                 'has_module_perms': has_module_perms,
                                 'models': [model_dict],
@@ -430,7 +433,7 @@ class AdminSite(object):
         # Sort the models alphabetically within each app.
         app_dict['models'].sort(key=lambda x: x['name'])
         context = {
-            'title': _('%s administration') % capfirst(app_label),
+            'title': _('%s administration') % app._meta.verbose_name,
             'app_list': [app_dict],
         }
         context.update(extra_context or {})
