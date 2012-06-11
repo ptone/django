@@ -1,5 +1,6 @@
 from optparse import make_option
 
+from django.apps import cache
 from django.conf import settings
 from django.db import connections, router, transaction, models, DEFAULT_DB_ALIAS
 from django.core.management import call_command
@@ -36,9 +37,9 @@ class Command(NoArgsCommand):
 
         # Import the 'management' module within each installed app, to register
         # dispatcher events.
-        for app_name in settings.INSTALLED_APPS:
+        for app in cache.loaded_apps:
             try:
-                import_module('.management', app_name)
+                import_module('%s.management' % app._meta.name)
             except ImportError:
                 pass
 

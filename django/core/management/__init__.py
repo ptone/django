@@ -97,16 +97,16 @@ def get_commands():
 
         # Find the installed apps
         try:
-            from django.conf import settings
-            apps = settings.INSTALLED_APPS
+            from django.apps import cache
+            apps = cache.loaded_apps
         except (AttributeError, EnvironmentError, ImportError):
             apps = []
 
         # Find and load the management module for each installed app.
-        for app_name in apps:
+        for app in apps:
             try:
-                path = find_management_module(app_name)
-                _commands.update(dict([(name, app_name)
+                path = find_management_module(app._meta.name)
+                _commands.update(dict([(name, app._meta.name)
                                        for name in find_commands(path)]))
             except ImportError:
                 pass # No management module - ignore this app
@@ -315,7 +315,7 @@ class ManagementUtility(object):
                 try:
                     from django.conf import settings
                     # Get the last part of the dotted path as the app name.
-                    options += [(a.split('.')[-1], 0) for a in settings.INSTALLED_APPS]
+                    options += [(a._meta.label, 0) for app in cache.loaded_apps]
                 except ImportError:
                     # Fail silently if DJANGO_SETTINGS_MODULE isn't set. The
                     # user will find out once they execute the command.
@@ -431,6 +431,12 @@ def setup_environ(settings_mod, original_settings_path=None):
     sys.path.append(os.path.join(project_directory, os.pardir))
     import_module(project_name)
     sys.path.pop()
+
+    # Initialize the appcache and look for errors
+    from django.apps import cache
+    for (app_name, error) in cache.get_app_errors().items():
+        sys.stderr.write("%s: %s" % (app_name, error))
+        sys.exit(1)
 
     return project_directory
 

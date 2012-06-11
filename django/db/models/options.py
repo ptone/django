@@ -1,6 +1,7 @@
 import re
 from bisect import bisect
 
+from django.apps import cache
 from django.conf import settings
 from django.db.models.related import RelatedObject
 from django.db.models.fields.related import ManyToManyRel
@@ -10,10 +11,8 @@ from django.db.models.loading import get_models, app_cache_ready
 from django.utils.translation import activate, deactivate_all, get_language, string_concat
 from django.utils.encoding import force_unicode, smart_str
 from django.utils.datastructures import SortedDict
+from django.utils.text import get_verbose_name
 from django.utils import six
-
-# Calculate the verbose_name by converting from InitialCaps to "lowercase with spaces".
-get_verbose_name = lambda class_name: re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', ' \\1', class_name).lower().strip()
 
 DEFAULT_NAMES = ('verbose_name', 'verbose_name_plural', 'db_table', 'ordering',
                  'unique_together', 'permissions', 'get_latest_by',
@@ -69,7 +68,8 @@ class Options(object):
         from django.db.backends.util import truncate_name
 
         cls._meta = self
-        self.installed = re.sub('\.models$', '', cls.__module__) in settings.INSTALLED_APPS
+        # The AppCache sets this attribute to True for apps that are installed
+        self.installed = False
         # First, construct the default values for these options.
         self.object_name = cls.__name__
         self.module_name = self.object_name.lower()
@@ -110,10 +110,14 @@ class Options(object):
             self.verbose_name_plural = string_concat(self.verbose_name, 's')
         del self.meta
 
-        # If the db_table wasn't provided, use the app_label + module_name.
+        # If the db_table wasn't provided, use the db_prefix + module_name.
+        # Or use the app label when no app instance was found, which happens
+        # when the app cache is not initialized but the model is imported
         if not self.db_table:
-            self.db_table = "%s_%s" % (self.app_label, self.module_name)
-            self.db_table = truncate_name(self.db_table, connection.ops.max_name_length())
+            app = cache.find_app(self.app_label)
+            prefix = app and app._meta.db_prefix or self.app_label
+            self.db_table = truncate_name("%s_%s" % (prefix, self.module_name),
+                                          connection.ops.max_name_length())
 
     def _prepare(self, model):
         if self.order_with_respect_to:
