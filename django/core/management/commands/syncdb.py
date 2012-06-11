@@ -1,6 +1,7 @@
 from optparse import make_option
 import traceback
 
+from django.apps import cache
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import NoArgsCommand
@@ -21,7 +22,7 @@ class Command(NoArgsCommand):
             default=DEFAULT_DB_ALIAS, help='Nominates a database to synchronize. '
                 'Defaults to the "default" database.'),
     )
-    help = "Create the database tables for all apps in INSTALLED_APPS whose tables haven't already been created."
+    help = "Create the database tables for all installed apps whose tables haven't already been created."
 
     def handle_noargs(self, **options):
 
@@ -34,10 +35,10 @@ class Command(NoArgsCommand):
 
         # Import the 'management' module within each installed app, to register
         # dispatcher events.
-        for app_name in settings.INSTALLED_APPS:
+        for app in cache.loaded_apps:
             try:
-                import_module('.management', app_name)
-            except ImportError as exc:
+                import_module('.management', app._meta.name)
+            except ImportError, exc:
                 # This is slightly hackish. We want to ignore ImportErrors
                 # if the "management" module itself is missing -- but we don't
                 # want to ignore the exception if the management module exists
@@ -63,10 +64,11 @@ class Command(NoArgsCommand):
 
         # Build the manifest of apps and models that are to be synchronized
         all_models = [
-            (app.__name__.split('.')[-2],
-                [m for m in models.get_models(app, include_auto_created=True)
+            (app._meta.label,
+                [m for m in models.get_models(app._meta.models_module,
+                                              include_auto_created=True)
                 if router.allow_syncdb(db, m)])
-            for app in models.get_apps()
+            for app in cache.loaded_apps
         ]
         def model_installed(model):
             opts = model._meta
@@ -100,7 +102,6 @@ class Command(NoArgsCommand):
                 for statement in sql:
                     cursor.execute(statement)
                 tables.append(connection.introspection.table_name_converter(model._meta.db_table))
-
 
         transaction.commit_unless_managed(using=db)
 

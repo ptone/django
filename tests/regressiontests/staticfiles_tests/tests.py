@@ -8,12 +8,12 @@ import shutil
 import sys
 import tempfile
 
-from django.template import loader, Context
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.storage import default_storage
 from django.core.management import call_command
+from django.template import loader, Context
 from django.test import TestCase
 from django.test.utils import override_settings
 from django.utils.encoding import smart_text

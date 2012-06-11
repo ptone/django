@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
+from django.apps import cache
 from django.conf import settings
 
 if __name__ == '__main__':
@@ -1643,17 +1644,24 @@ class Templates(unittest.TestCase):
         }
         return tests
 
+class MockedApp(object):
+    def __init__(self, name):
+        self.name = name
+    @property
+    def _meta(self):
+        return self
+
 class TemplateTagLoading(unittest.TestCase):
 
     def setUp(self):
         self.old_path = sys.path[:]
-        self.old_apps = settings.INSTALLED_APPS
+        self.old_loaded_apps = cache.loaded_apps
         self.egg_dir = '%s/eggs' % os.path.dirname(__file__)
         self.old_tag_modules = template_base.templatetags_modules
         template_base.templatetags_modules = []
 
     def tearDown(self):
-        settings.INSTALLED_APPS = self.old_apps
+        cache.loaded_apps = self.old_loaded_apps
         sys.path = self.old_path
         template_base.templatetags_modules = self.old_tag_modules
 
@@ -1670,7 +1678,7 @@ class TemplateTagLoading(unittest.TestCase):
         ttext = "{% load broken_egg %}"
         egg_name = '%s/tagsegg.egg' % self.egg_dir
         sys.path.append(egg_name)
-        settings.INSTALLED_APPS = ('tagsegg',)
+        cache.loaded_apps = (MockedApp('tagsegg'),)
         self.assertRaises(template.TemplateSyntaxError, template.Template, ttext)
         try:
             template.Template(ttext)
@@ -1682,7 +1690,7 @@ class TemplateTagLoading(unittest.TestCase):
         ttext = "{% load working_egg %}"
         egg_name = '%s/tagsegg.egg' % self.egg_dir
         sys.path.append(egg_name)
-        settings.INSTALLED_APPS = ('tagsegg',)
+        cache.loaded_apps = (MockedApp('tagsegg'),)
         t = template.Template(ttext)
 
 

@@ -1,5 +1,5 @@
+from django.apps import cache, get_apps, get_models
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import get_apps, get_models, signals
 from django.utils.encoding import smart_text
 from django.utils import six
 from django.utils.six.moves import input
@@ -9,6 +9,7 @@ def update_contenttypes(app, created_models, verbosity=2, **kwargs):
     Creates content types for models in the given app, removing any model
     entries that no longer have a matching model class.
     """
+    app_cls = cache.find_app_by_models_module(app)
     ContentType.objects.clear_cache()
     app_models = get_models(app)
     if not app_models:
@@ -22,7 +23,8 @@ def update_contenttypes(app, created_models, verbosity=2, **kwargs):
     # Get all the content types
     content_types = dict(
         (ct.model, ct)
-        for ct in ContentType.objects.filter(app_label=app_label)
+        for ct in ContentType.objects.filter(
+                app_label=app_cls._meta.label)
     )
     to_remove = [
         ct
