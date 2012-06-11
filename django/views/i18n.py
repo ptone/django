@@ -2,6 +2,7 @@ import os
 import gettext as gettext_module
 
 from django import http
+from django.apps import cache
 from django.conf import settings
 from django.utils import importlib
 from django.utils.translation import check_for_language, activate, to_locale, get_language
@@ -186,7 +187,8 @@ def javascript_catalog(request, domain='djangojs', packages=None):
         packages = ['django.conf']
     if isinstance(packages, basestring):
         packages = packages.split('+')
-    packages = [p for p in packages if p == 'django.conf' or p in settings.INSTALLED_APPS]
+    apps = [app._meta.name for app in cache.loaded_apps]
+    packages = [p for p in packages if p == 'django.conf' or p in apps]
     default_locale = to_locale(settings.LANGUAGE_CODE)
     locale = to_locale(get_language())
     t = {}
