@@ -84,6 +84,13 @@ class AppCacheReadyTests(AppCacheTestCase):
         cache.load_app('nomodel_app', can_postpone=True)
         self.assertFalse(cache.app_cache_ready())
 
+    def test_cache_ready(self):
+        """
+        populate should result in the cache being ready
+        """
+        settings.INSTALLED_APPS = ('model_app.app.MyApp',)
+        cache._populate()
+        self.assertTrue(cache.app_cache_ready())
 
 class GetAppClassTests(AppCacheTestCase):
     """Tests for the get_app_class function"""
@@ -480,6 +487,12 @@ class LoadAppTests(AppCacheTestCase):
         """
         self.assertRaises(ImportError, cache.load_app, 'garageland')
 
+    def test_bad_models_kwarg(self):
+        """
+        Test that an error is raised when a invalid models module kwarg is given
+        """
+        self.assertRaises(ImportError, cache.load_app, 'model_app',
+                app_kwargs={'models_path':'no.such.thing'})
 
 class RegisterModelsTests(AppCacheTestCase):
     """Tests for the register_models function"""
@@ -599,6 +612,16 @@ class FindAppTests(AppCacheTestCase):
         self.assertEquals(model_app._meta.db_prefix, 'model_app')
         self.assertEquals(model_app.some_attribute, True)
 
+    def test_find_app_by_models_module(self):
+        """
+        Tests that an app can be found using only its models module
+        """
+        settings.INSTALLED_APPS = ('model_app.app.MyApp',)
+        cache._populate()
+        from model_app import othermodels
+        app = cache.find_app('model_app')
+        found_app = cache.find_app_by_models_module(othermodels)
+        self.assertEquals(found_app, app)
 
 class SignalTests(AppCacheTestCase):
     """Tests for the signals"""
