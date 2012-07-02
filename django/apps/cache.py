@@ -345,6 +345,11 @@ class AppCache(object):
                 # comparing.
                 if os.path.splitext(fname1)[0] == os.path.splitext(fname2)[0]:
                     continue
+                else:
+                    raise ImproperlyConfigured(
+                            'A model named %s is already registered for this app' %
+                            model_name)
+
             if app:
                 app._meta.models[model_name] = model
             model_dict[model_name] = model
