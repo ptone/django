@@ -869,7 +869,7 @@ class AppResolutionOrderI18NTests(ResolutionOrderI18NTests):
         super(AppResolutionOrderI18NTests, self).tearDown()
 
     def test_app_translation(self):
-        self.assertUgettext('Date/time', 'APP')
+        self.assertUgettext('Date/time', 'Datum/Zeit')
 
 class LocalePathsResolutionOrderI18NTests(ResolutionOrderI18NTests):
 
