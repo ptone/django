@@ -9,22 +9,22 @@ from django.conf import Settings
 from django.db.models.loading import cache, load_app, get_model, get_models
 from django.utils.unittest import TestCase
 
+# TODO is this an old feature spec?  Can it be dropped?
+# class InstalledAppsGlobbingTest(TestCase):
+    # def setUp(self):
+        # self.OLD_SYS_PATH = sys.path[:]
+        # sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        # self.OLD_TZ = os.environ.get("TZ")
 
-class InstalledAppsGlobbingTest(TestCase):
-    def setUp(self):
-        self.OLD_SYS_PATH = sys.path[:]
-        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        self.OLD_TZ = os.environ.get("TZ")
+    # def test_globbing(self):
+        # settings = Settings('test_settings')
+        # self.assertEqual(settings.INSTALLED_APPS, ['parent.app', 'parent.app1', 'parent.app_2'])
 
-    def test_globbing(self):
-        settings = Settings('test_settings')
-        self.assertEqual(settings.INSTALLED_APPS, ['parent.app', 'parent.app1', 'parent.app_2'])
-
-    def tearDown(self):
-        sys.path = self.OLD_SYS_PATH
-        if hasattr(time, "tzset") and self.OLD_TZ:
-            os.environ["TZ"] = self.OLD_TZ
-            time.tzset()
+    # def tearDown(self):
+        # sys.path = self.OLD_SYS_PATH
+        # if hasattr(time, "tzset") and self.OLD_TZ:
+            # os.environ["TZ"] = self.OLD_TZ
+            # time.tzset()
 
 
 class EggLoadingTest(TestCase):
@@ -37,12 +37,10 @@ class EggLoadingTest(TestCase):
         # need to be removed in order to prevent bad interactions
         # with the flush operation in other tests.
         self.old_app_models = copy.deepcopy(cache.app_models)
-        self.old_app_store = copy.deepcopy(cache.app_store)
 
     def tearDown(self):
         sys.path = self.old_path
         cache.app_models = self.old_app_models
-        cache.app_store = self.old_app_store
 
     def test_egg1(self):
         """Models module can be loaded from an app in an egg"""
