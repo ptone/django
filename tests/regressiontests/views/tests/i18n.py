@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import gettext
 from os import path
 
+from django.apps import cache
 from django.conf import settings
 from django.test import TestCase
 from django.utils.translation import override, activate, get_language
