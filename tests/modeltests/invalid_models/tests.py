@@ -2,14 +2,14 @@ import copy
 import sys
 
 from django.core.management.validation import get_validation_errors
-from django.db.models.loading import cache, load_app
-
+from django.db.models.loading import cache
 from django.utils import unittest
 from django.utils.six import StringIO
+from django.test.utils import override_settings
 
 
 class InvalidModelTestCase(unittest.TestCase):
-    """Import an appliation with invalid models and test the exceptions."""
+    """Import an application with invalid models and test the exceptions."""
 
     def setUp(self):
         # Make sure sys.stdout is not a tty so that we get errors without
@@ -19,23 +19,14 @@ class InvalidModelTestCase(unittest.TestCase):
         self.stdout = StringIO()
         sys.stdout = self.stdout
 
-        # This test adds dummy applications to the app cache. These
-        # need to be removed in order to prevent bad interactions
-        # with the flush operation in other tests.
-        self.old_app_models = copy.deepcopy(cache.app_models)
-
     def tearDown(self):
-        cache.app_models = self.old_app_models
-        cache._get_models_cache = {}
+        cache._reload()
         sys.stdout = self.old_stdout
 
+    @override_settings(INSTALLED_APPS=("modeltests.invalid_models.invalid_models",))
     def test_invalid_models(self):
-
-        try:
-            module = load_app("modeltests.invalid_models.invalid_models")
-        except Exception:
-            self.fail('Unable to load invalid model module')
-
+        cache._reload()
+        module = cache.get_app('invalid_models')
         count = get_validation_errors(self.stdout, module)
         self.stdout.seek(0)
         error_log = self.stdout.read()
