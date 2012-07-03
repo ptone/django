@@ -56,7 +56,7 @@ class AppCache(object):
                 module = model.__module__
                 if module in sys.modules:
                     del sys.modules[module]
-        self.__class__.__shared_state.update(_initialize())
+        self.__class__.__shared_state = dict(_initialize(), write_lock=threading.RLock())
 
     def _reload(self):
         """
