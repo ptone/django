@@ -5,6 +5,7 @@ from optparse import OptionParser, NO_DEFAULT
 import imp
 import warnings
 
+from django.apps import cache
 from django.core.management.base import BaseCommand, CommandError, handle_default_options
 from django.core.management.color import color_style
 from django.utils.importlib import import_module
@@ -321,7 +322,7 @@ class ManagementUtility(object):
                 try:
                     from django.conf import settings
                     # Get the last part of the dotted path as the app name.
-                    options += [(a._meta.label, 0) for app in cache.loaded_apps]
+                    options += [(app._meta.label, 0) for app in cache.loaded_apps]
                 except ImportError:
                     # Fail silently if DJANGO_SETTINGS_MODULE isn't set. The
                     # user will find out once they execute the command.
