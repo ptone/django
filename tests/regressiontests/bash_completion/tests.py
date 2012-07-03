@@ -4,6 +4,7 @@ A series of tests to establish that the command-line bash completion works.
 import os
 import sys
 
+from django.apps import cache
 from django.conf import settings
 from django.core.management import ManagementUtility
 from django.utils import unittest
@@ -84,5 +85,5 @@ class BashCompletionTests(unittest.TestCase):
         "Application names will be autocompleted for an AppCommand"
         self._user_input('django-admin.py sqlall a')
         output = self._run_autocomplete()
-        app_labels = [name.split('.')[-1] for name in settings.INSTALLED_APPS]
+        app_labels = [app._meta.label for app in cache.loaded_apps]
         self.assertEqual(output, sorted(label for label in app_labels if label.startswith('a')))
