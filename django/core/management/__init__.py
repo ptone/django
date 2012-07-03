@@ -99,6 +99,7 @@ def get_commands():
         # Find the installed apps
         try:
             from django.apps import cache
+            cache._populate()
             apps = cache.loaded_apps
         except (AttributeError, EnvironmentError, ImportError):
             apps = []
