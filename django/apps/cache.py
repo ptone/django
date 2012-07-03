@@ -253,7 +253,7 @@ class AppCache(object):
             else:
                 return mod
         raise ImproperlyConfigured(
-                "App with label %s could not be found" % app_label)
+                "App with label %s could not be found." % app_label)
 
     def get_app_errors(self):
         """
