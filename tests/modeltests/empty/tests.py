@@ -33,5 +33,9 @@ class NoModelTests(TestCase):
     @override_settings(INSTALLED_APPS=("modeltests.empty.no_models",))
     def test_no_models(self):
         with self.assertRaisesRegexp(ImproperlyConfigured,
-                    'App with label no_models is missing a models.py module.'):
+                    'App with label no_models could not be found.'):
             get_app('no_models')
+
+    def test_no_models_emptyOK(self):
+        self.assertEquals(get_app('no_models', emptyOK=True), None)
+
