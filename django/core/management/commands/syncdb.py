@@ -67,7 +67,7 @@ class Command(NoArgsCommand):
             (app._meta.label,
                 [m for m in models.get_models(app._meta.models_module,
                                               include_auto_created=True)
-                if router.allow_syncdb(db, m)])
+                if app._meta.models_module and router.allow_syncdb(db, m)])
             for app in cache.loaded_apps
         ]
         def model_installed(model):
