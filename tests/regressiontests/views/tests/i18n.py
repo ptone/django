@@ -97,6 +97,7 @@ class JsI18NTests(TestCase):
             with override('en-us'):
                 response = self.client.get('/views/jsi18n_english_translation/')
                 self.assertContains(response, javascript_quote('this app0 string is to be translated'))
+        cache.unload_app(app_label='app0')
 
     def testI18NLanguageNonEnglishFallback(self):
         """
@@ -129,6 +130,8 @@ class JsI18NTestsMultiPackage(TestCase):
             with override('fr'):
                 response = self.client.get('/views/jsi18n_multi_packages1/')
                 self.assertContains(response, javascript_quote('il faut traduire cette chaîne de caractères de app1'))
+        cache.unload_app(app_label='app1')
+        cache.unload_app(app_label='app2')
 
     def testI18NDifferentNonEnLangs(self):
         """
@@ -142,6 +145,8 @@ class JsI18NTestsMultiPackage(TestCase):
             with override('es-ar'):
                 response = self.client.get('/views/jsi18n_multi_packages2/')
                 self.assertContains(response, javascript_quote('este texto de app3 debe ser traducido'))
+        cache.unload_app(app_label='app3')
+        cache.unload_app(app_label='app4')
 
     def testI18NWithLocalePaths(self):
         extended_locale_paths = settings.LOCALE_PATHS + (
