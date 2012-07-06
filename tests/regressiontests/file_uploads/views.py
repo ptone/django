@@ -77,7 +77,8 @@ def file_upload_unicode_name(request):
     # upload directory has been seen to choke on unicode
     # filenames on Windows.)
     obj.delete()
-    os.unlink(full_name)
+    if os.path.exists(full_name):
+        os.unlink(full_name)
 
     if response:
         return response
