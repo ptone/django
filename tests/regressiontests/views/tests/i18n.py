@@ -98,6 +98,7 @@ class JsI18NTests(TestCase):
         with the proper English translations. See #13726 for more details.
         """
         extended_apps = list(settings.INSTALLED_APPS) + ['regressiontests.views.app0']
+        cache.load_app('regressiontests.views.app0')
         with self.settings(LANGUAGE_CODE='fr', INSTALLED_APPS=extended_apps):
             with override('en-us'):
                 response = self.client.get('/views/jsi18n_english_translation/')
@@ -128,6 +129,8 @@ class JsI18NTestsMultiPackage(TestCase):
         #3594 and #13514 for more details.
         """
         extended_apps = list(settings.INSTALLED_APPS) + ['regressiontests.views.app1', 'regressiontests.views.app2']
+        cache.load_app('regressiontests.views.app1')
+        cache.load_app('regressiontests.views.app2')
         with self.settings(LANGUAGE_CODE='en-us', INSTALLED_APPS=extended_apps):
             with override('fr'):
                 response = self.client.get('/views/jsi18n_multi_packages1/')
@@ -139,6 +142,8 @@ class JsI18NTestsMultiPackage(TestCase):
         English.
         """
         extended_apps = list(settings.INSTALLED_APPS) + ['regressiontests.views.app3', 'regressiontests.views.app4']
+        cache.load_app('regressiontests.views.app3')
+        cache.load_app('regressiontests.views.app4')
         with self.settings(LANGUAGE_CODE='fr', INSTALLED_APPS=extended_apps):
             with override('es-ar'):
                 response = self.client.get('/views/jsi18n_multi_packages2/')

@@ -31,15 +31,18 @@ class NoModelTests(TestCase):
 
     It seemed like an appropriate home for it.
     """
-    @override_settings(INSTALLED_APPS=("modeltests.empty.no_models",))
+    def setUp(self):
+        cache.load_app("modeltests.empty.no_models")
+
+    def tearDown(self):
+        # TODO a cache.unload_app would be perhaps good to have?
+        pass
+
     def test_no_models(self):
-        cache._reload()
         with self.assertRaisesRegexp(ImproperlyConfigured,
                     'App with label no_models could not be found.'):
             get_app('no_models')
 
-    @override_settings(INSTALLED_APPS=("modeltests.empty.no_models",))
     def test_no_models_emptyOK(self):
-        cache._reload()
         self.assertEquals(get_app('no_models', emptyOK=True), None)
 
