@@ -202,6 +202,15 @@ class AppCache(object):
         app.add_parent_models()
         return models
 
+    def unload_app(self, app_name=None, app_label=None):
+        if app_name:
+            # TODO
+            pass
+        elif app_label:
+            app = self.find_app(app_label)
+            # TODO this needs to be a log more complete and thought out
+            del(self.loaded_apps[app])
+
     def find_app(self, app_label):
         """
         Returns the app instance that matches the given label.
