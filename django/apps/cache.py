@@ -210,7 +210,11 @@ class AppCache(object):
             app = self.find_app(app_label)
             # TODO this needs to be a log more complete and thought out
             self.loaded_apps.remove(app)
-            del(self.app_models[app._meta.label])
+            try:
+                del(self.app_models[app._meta.label])
+            except KeyError:
+                # this app may have had no model module
+                pass
         self._get_models_cache.clear()
 
     def find_app(self, app_label):
