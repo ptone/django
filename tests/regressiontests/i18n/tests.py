@@ -862,6 +862,7 @@ class MockedApp(object):
 class AppResolutionOrderI18NTests(ResolutionOrderI18NTests):
 
     def setUp(self):
+        # TODO should this be a deep copy?
         self.old_loaded_apps = cache.loaded_apps
         cache.loaded_apps = [MockedApp()] + cache.loaded_apps
         super(AppResolutionOrderI18NTests, self).setUp()
@@ -870,6 +871,7 @@ class AppResolutionOrderI18NTests(ResolutionOrderI18NTests):
         cache.loaded_apps = self.old_loaded_apps
         super(AppResolutionOrderI18NTests, self).tearDown()
 
+# TODO this used to be a comparison to 'APP', but mocked app has no translation logic
     def test_app_translation(self):
         self.assertUgettext('Date/time', 'Datum/Zeit')
 
