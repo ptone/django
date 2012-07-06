@@ -209,7 +209,9 @@ class AppCache(object):
         elif app_label:
             app = self.find_app(app_label)
             # TODO this needs to be a log more complete and thought out
-            del(self.loaded_apps[app])
+            self.loaded_apps.remove(app)
+            del(self.app_models[app._meta.label])
+        self._get_models_cache.clear()
 
     def find_app(self, app_label):
         """
