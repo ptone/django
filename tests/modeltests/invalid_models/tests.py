@@ -25,7 +25,7 @@ class InvalidModelTestCase(unittest.TestCase):
     def tearDown(self):
         sys.stdout = self.old_stdout
         # post_syncdb.receivers = self.sync_receivers
-        cache.unload_app("modeltests.invalid_models.invalid_models_app")
+        cache.unload_app(app_label="invalid_models_app")
 
     def test_invalid_models(self):
         module = cache.get_app('invalid_models_app')
