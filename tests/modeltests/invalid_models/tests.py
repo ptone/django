@@ -1,8 +1,8 @@
-import copy
 import sys
 
+from django.apps import cache
 from django.core.management.validation import get_validation_errors
-from django.db.models.loading import cache
+from django.db.models.signals import post_syncdb
 from django.utils import unittest
 from django.utils.six import StringIO
 from django.test.utils import override_settings
@@ -18,10 +18,13 @@ class InvalidModelTestCase(unittest.TestCase):
         self.old_stdout = sys.stdout
         self.stdout = StringIO()
         sys.stdout = self.stdout
+        self.sync_receivers = post_syncdb.receivers
+        post_syncdb.receivers = []
 
     def tearDown(self):
         cache._reload()
         sys.stdout = self.old_stdout
+        post_syncdb.receivers = self.sync_receivers
 
     @override_settings(INSTALLED_APPS=("modeltests.invalid_models.invalid_models",))
     def test_invalid_models(self):
