@@ -33,7 +33,7 @@ class TablespacesTests(TestCase):
     def tearDown(self):
         for model in Article, Authors, Reviewers, Scientist:
             model._meta.managed = False
-        cache._reload()
+        # cache._reload()
 
     def assertNumContains(self, haystack, needle, count):
         real_count = haystack.count(needle)
