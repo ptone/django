@@ -15,6 +15,7 @@ class InvalidModelTestCase(unittest.TestCase):
         # Make sure sys.stdout is not a tty so that we get errors without
         # coloring attached (makes matching the results easier). We restore
         # sys.stderr afterwards.
+        cache.load_app("modeltests.invalid_models.invalid_models_app")
         self.old_stdout = sys.stdout
         self.stdout = BytesIO()
         sys.stdout = self.stdout
@@ -22,14 +23,11 @@ class InvalidModelTestCase(unittest.TestCase):
         post_syncdb.receivers = []
 
     def tearDown(self):
-        cache._reload()
         sys.stdout = self.old_stdout
         post_syncdb.receivers = self.sync_receivers
 
-    @override_settings(INSTALLED_APPS=("modeltests.invalid_models.invalid_models",))
     def test_invalid_models(self):
-        cache._reload()
-        module = cache.get_app('invalid_models')
+        module = cache.get_app('invalid_models_app')
         count = get_validation_errors(self.stdout, module)
         self.stdout.seek(0)
         error_log = self.stdout.read()
