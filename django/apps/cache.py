@@ -55,9 +55,10 @@ class AppCache(object):
             for model in models.itervalues():
                 module = model.__module__
                 if module in sys.modules:
+                    print module
                     del sys.modules[module]
-        self.__class__.__shared_state = dict(_initialize(), write_lock=threading.RLock())
-        self.__dict__ = self.__shared_state
+        self.__dict__ = self.__class__.__shared_state = dict(
+                _initialize(), write_lock=threading.RLock())
 
     def _reload(self):
         """
@@ -65,6 +66,8 @@ class AppCache(object):
         """
         self._reset()
         self._populate()
+        # x = str([app._meta.label for app in self.loaded_apps])
+        sys.stderr.write('\ncache reloaded: %s apps\n\n' % len(self.loaded_apps))
 
     def _populate(self):
         """
@@ -91,15 +94,7 @@ class AppCache(object):
                     self.load_app(app_name, app_kwargs)
                 # assign models to app instances
                 for app in self.loaded_apps:
-                    parents = [p for p in app.__class__.mro()
-                               if hasattr(p, '_meta')]
-                    for parent in reversed(parents):
-                        parent_models = self.app_models.get(parent._meta.label, {})
-                        # update app_label and installed attribute of parent models
-                        for model in parent_models.itervalues():
-                            model._meta.app_label = app._meta.label
-                            model._meta.installed = True
-                        app._meta.models.update(parent_models)
+                    app.add_parent_models()
 
                 # check if there is more than one app with the same
                 # db_prefix attribute
@@ -204,6 +199,7 @@ class AppCache(object):
 
         self.nesting_level -= 1
         app._meta.models_module = models
+        app.add_parent_models()
         return models
 
     def find_app(self, app_label):
