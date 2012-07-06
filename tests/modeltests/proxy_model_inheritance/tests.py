@@ -26,18 +26,14 @@ class ProxyModelInheritanceTests(TransactionTestCase):
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
         self.sync_receivers = post_syncdb.receivers
         post_syncdb.receivers = []
+        cache.load_app('modeltests.proxy_model_inheritance.app1')
+        cache.load_app('modeltests.proxy_model_inheritance.app2')
 
     def tearDown(self):
         sys.path = self.old_sys_path
         post_syncdb.receivers = self.sync_receivers
-        cache._reset()
 
-    @override_settings(INSTALLED_APPS=(
-        'modeltests.proxy_model_inheritance.app1',
-        'modeltests.proxy_model_inheritance.app2',
-        ))
     def test_table_exists(self):
-        cache._reload()
         call_command('syncdb', verbosity=0)
         from modeltests.proxy_model_inheritance.app1.models import ProxyModel
         from modeltests.proxy_model_inheritance.app2.models import NiceModel
