@@ -15,6 +15,7 @@ warnings.filterwarnings('ignore', "The Databrowse contrib app is deprecated",
 CONTRIB_DIR_NAME = 'django.contrib'
 MODEL_TESTS_DIR_NAME = 'modeltests'
 REGRESSION_TESTS_DIR_NAME = 'regressiontests'
+APPCACHE_TESTS_DIR_NAME = 'appcachetests'
 
 TEST_TEMPLATE_DIR = 'templates'
 
@@ -22,6 +23,7 @@ RUNTESTS_DIR = os.path.dirname(__file__)
 CONTRIB_DIR = os.path.dirname(contrib.__file__)
 MODEL_TEST_DIR = os.path.join(RUNTESTS_DIR, MODEL_TESTS_DIR_NAME)
 REGRESSION_TEST_DIR = os.path.join(RUNTESTS_DIR, REGRESSION_TESTS_DIR_NAME)
+APPCACHE_TEST_DIR = os.path.join(RUNTESTS_DIR, APPCACHE_TESTS_DIR_NAME)
 TEMP_DIR = tempfile.mkdtemp(prefix='django_')
 os.environ['DJANGO_TEST_TEMP_DIR'] = TEMP_DIR
 
@@ -57,7 +59,8 @@ def get_test_modules():
     for loc, dirpath in (
         (MODEL_TESTS_DIR_NAME, MODEL_TEST_DIR),
         (REGRESSION_TESTS_DIR_NAME, REGRESSION_TEST_DIR),
-        (CONTRIB_DIR_NAME, CONTRIB_DIR)):
+        (CONTRIB_DIR_NAME, CONTRIB_DIR),
+        (APPCACHE_TESTS_DIR_NAME, APPCACHE_TEST_DIR),):
         for f in os.listdir(dirpath):
             if (f.startswith('__init__') or
                 f.startswith('.') or
