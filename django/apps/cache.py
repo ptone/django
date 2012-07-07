@@ -231,7 +231,7 @@ class AppCache(object):
             if app._meta.models_module == models_module:
                 return app
 
-    def app_cache_ready(self):
+    def ready(self):
         """
         Returns true if the model cache is fully populated.
 
