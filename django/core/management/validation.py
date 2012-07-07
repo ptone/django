@@ -1,5 +1,6 @@
 import sys
 
+from django.apps import cache
 from django.core.management.color import color_style
 from django.utils.encoding import smart_str
 from django.utils.itercompat import is_iterable
@@ -21,18 +22,16 @@ def get_validation_errors(outfile, app=None):
     validates all models of all installed apps. Writes errors, if any, to outfile.
     Returns number of errors.
     """
-    from django.conf import settings
     from django.db import models, connection
-    from django.db.models.loading import get_app_errors
     from django.db.models.fields.related import RelatedObject
     from django.db.models.deletion import SET_NULL, SET_DEFAULT
 
     e = ModelErrorCollection(outfile)
 
-    for (app_name, error) in get_app_errors().items():
+    for (app_name, error) in cache.get_app_errors().items():
         e.add(app_name, error)
 
-    for cls in models.get_models(app):
+    for cls in cache.get_models(app):
         opts = cls._meta
 
         # Do field-specific validation.

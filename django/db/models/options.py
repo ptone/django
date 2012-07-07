@@ -9,7 +9,6 @@ from django.db.models.related import RelatedObject
 from django.db.models.fields.related import ManyToManyRel
 from django.db.models.fields import AutoField, FieldDoesNotExist
 from django.db.models.fields.proxy import OrderWrt
-from django.db.models.loading import get_models, app_cache_ready
 from django.utils.translation import activate, deactivate_all, get_language, string_concat
 from django.utils.encoding import force_text, smart_text
 from django.utils.datastructures import SortedDict
@@ -354,7 +353,7 @@ class Options(object):
             cache[f.name] = (f, model, True, True)
         for f, model in self.get_fields_with_model():
             cache[f.name] = (f, model, True, False)
-        if app_cache_ready():
+        if cache.app_cache_ready():
             self._name_map = cache
         return cache
 
@@ -406,7 +405,7 @@ class Options(object):
                     cache[obj] = model
         # Collect also objects which are in relation to some proxy child/parent of self.
         proxy_cache = cache.copy()
-        for klass in get_models(include_auto_created=True, only_installed=False):
+        for klass in cache.get_models(include_auto_created=True, only_installed=False):
             for f in klass._meta.local_fields:
                 if f.rel and not isinstance(f.rel.to, six.string_types):
                     if self == f.rel.to._meta:
@@ -448,11 +447,11 @@ class Options(object):
                     cache[obj] = parent
                 else:
                     cache[obj] = model
-        for klass in get_models(only_installed=False):
+        for klass in cache.get_models(only_installed=False):
             for f in klass._meta.local_many_to_many:
                 if f.rel and not isinstance(f.rel.to, six.string_types) and self == f.rel.to._meta:
                     cache[RelatedObject(f.rel.to, klass, f)] = None
-        if app_cache_ready():
+        if cache.app_cache_ready():
             self._related_many_to_many_cache = cache
         return cache
 
