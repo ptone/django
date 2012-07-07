@@ -65,7 +65,7 @@ class ReloadTests(AppCacheTestCase):
 
 class AppCacheReadyTests(AppCacheTestCase):
     """
-    Tests for the app_cache_ready function that indicates if the cache
+    Tests for the ready function that indicates if the cache
     is fully populated.
     """
 
@@ -73,16 +73,16 @@ class AppCacheReadyTests(AppCacheTestCase):
         """
         Should return False if the AppCache hasn't been initialized
         """
-        self.assertFalse(cache.app_cache_ready())
+        self.assertFalse(cache.ready())
 
     def test_load_app(self):
         """
         Should return False after executing the load_app function
         """
         cache.load_app('nomodel_app')
-        self.assertFalse(cache.app_cache_ready())
+        self.assertFalse(cache.ready())
         cache.load_app('nomodel_app', can_postpone=True)
-        self.assertFalse(cache.app_cache_ready())
+        self.assertFalse(cache.ready())
 
     def test_cache_ready(self):
         """
@@ -90,7 +90,7 @@ class AppCacheReadyTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app.app.MyApp',)
         cache._populate()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
 
 class GetAppClassTests(AppCacheTestCase):
     """Tests for the get_app_class function"""
@@ -156,7 +156,7 @@ class GetAppsTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app.app.MyApp',)
         apps = cache.get_apps()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertEquals(apps[0].__name__, 'model_app.othermodels')
 
     def test_installed_apps(self):
@@ -166,7 +166,7 @@ class GetAppsTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app',)
         apps = cache.get_apps()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertEquals(apps[0].__name__, 'model_app.models')
 
     def test_same_app_in_both_settings(self):
@@ -185,7 +185,7 @@ class GetAppsTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('nomodel_app',)
         self.assertEqual(cache.get_apps(), [])
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
 
     def test_db_prefix_exception(self):
         """
@@ -207,7 +207,7 @@ class GetAppTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app',)
         mod = cache.get_app('model_app')
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertEquals(mod.__name__, 'model_app.models')
 
     def test_not_found_exception(self):
@@ -217,7 +217,7 @@ class GetAppTests(AppCacheTestCase):
         """
         self.assertRaises(ImproperlyConfigured, cache.get_app,
                           'notarealapp')
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
 
     def test_emptyOK(self):
         """
@@ -226,7 +226,7 @@ class GetAppTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('nomodel_app',)
         module = cache.get_app('nomodel_app', emptyOK=True)
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.failUnless(module is None)
 
     def test_exception_if_no_models(self):
@@ -237,7 +237,7 @@ class GetAppTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('nomodel_app',)
         self.assertRaises(ImproperlyConfigured, cache.get_app,
                           'nomodel_app')
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
 
 
 class GetAppErrorsTests(AppCacheTestCase):
@@ -246,7 +246,7 @@ class GetAppErrorsTests(AppCacheTestCase):
     def test_get_app_errors(self):
         """Test that the function returns an empty dict"""
         self.assertEqual(cache.get_app_errors(), {})
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
 
 
 class GetModelsTests(AppCacheTestCase):
@@ -261,7 +261,7 @@ class GetModelsTests(AppCacheTestCase):
         from model_app.models import Person
         settings.INSTALLED_APPS = ('model_app',)
         models = cache.get_models()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertEqual(models, [Person])
 
     def test_not_only_installed(self):
@@ -272,7 +272,7 @@ class GetModelsTests(AppCacheTestCase):
         from model_app.models import Person as p2
         settings.INSTALLED_APPS = ('model_app',)
         models = cache.get_models(only_installed=False)
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertEqual(models, [Job, Person, Contact, p2])
 
     def test_app_mod(self):
@@ -284,7 +284,7 @@ class GetModelsTests(AppCacheTestCase):
         from model_app.models import Person
         settings.INSTALLED_APPS = ('model_app', 'anothermodel_app')
         models = cache.get_models(app_mod=models)
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertEqual(models, [Person])
 
     def test_app_mod_not_installed(self):
@@ -303,7 +303,7 @@ class GetModelsTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('anothermodel_app',)
         models = cache.get_models(include_auto_created=True)
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         from anothermodel_app.models import Job, Person
         self.assertEqual(models[0], Job)
         self.assertEqual(models[1].__name__, 'Person_jobs')
@@ -337,7 +337,7 @@ class GetModelTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('model_app',)
         model = cache.get_model('model_app', 'Person')
         self.assertEqual(model.__name__, 'Person')
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
 
     def test_seeded_only_installed_invalid(self):
         """
@@ -346,7 +346,7 @@ class GetModelTests(AppCacheTestCase):
         """
         model = cache.get_model('model_app', 'Person')
         self.assertEqual(model, None)
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
 
     def test_unseeded_only_installed_invalid(self):
         """
@@ -355,7 +355,7 @@ class GetModelTests(AppCacheTestCase):
         """
         model = cache.get_model('model_app', 'Person', seed_cache=False)
         self.assertEqual(model, None)
-        self.assertFalse(cache.app_cache_ready())
+        self.assertFalse(cache.ready())
 
     def test_seeded_all_models_valid(self):
         """
@@ -504,7 +504,7 @@ class RegisterModelsTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app',)
         cache._populate()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         app_models = cache.loaded_apps[0]._meta.models.values()
         self.assertEqual(len(app_models), 1)
         self.assertEqual(app_models[0].__name__, 'Person')
@@ -516,7 +516,7 @@ class RegisterModelsTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app',)
         cache._populate()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         from model_app.models import Person
         cache.register_models('model_app_NONEXISTENT', *(Person,))
         self.assertEquals(cache.app_models['model_app_NONEXISTENT']['person'], Person)
@@ -526,7 +526,7 @@ class RegisterModelsTests(AppCacheTestCase):
         Test that models can be registered with an unseeded cache
         """
         from model_app.models import Person
-        self.assertFalse(cache.app_cache_ready())
+        self.assertFalse(cache.ready())
         self.assertEquals(cache.app_models['model_app']['person'], Person)
 
 
@@ -540,7 +540,7 @@ class FindAppTests(AppCacheTestCase):
         from django.apps import App
         settings.INSTALLED_APPS = ('model_app',)
         cache._populate()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         app = cache.find_app('model_app')
         self.assertEquals(app._meta.name, 'model_app')
         self.assertTrue(isinstance(app, App))
@@ -552,7 +552,7 @@ class FindAppTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app',)
         cache._populate()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         app = cache.find_app('model_app_NOTVALID')
         self.assertEquals(app, None)
 
@@ -562,7 +562,7 @@ class FindAppTests(AppCacheTestCase):
         """
         from django.apps import App
         cache.load_app('model_app')
-        self.assertFalse(cache.app_cache_ready())
+        self.assertFalse(cache.ready())
         app = cache.find_app('model_app')
         self.assertEquals(app._meta.name, 'model_app')
         self.assertTrue(isinstance(app, App))
@@ -642,7 +642,7 @@ class SignalTests(AppCacheTestCase):
 
         settings.INSTALLED_APPS = ('model_app',)
         cache._populate()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertTrue(self.signal_fired)
 
     def test_post_apps_loaded(self):
@@ -657,7 +657,7 @@ class SignalTests(AppCacheTestCase):
             self.signal_fired = True
         post_apps_loaded.connect(callback)
         cache._populate()
-        self.assertTrue(cache.app_cache_ready())
+        self.assertTrue(cache.ready())
         self.assertTrue(self.signal_fired)
 
 
