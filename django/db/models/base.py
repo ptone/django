@@ -5,6 +5,7 @@ import sys
 from functools import update_wrapper
 from future_builtins import zip
 
+from django.apps import cache
 import django.db.models.manager     # Imported to register signal handler.
 from django.conf import settings
 from django.core.exceptions import (ObjectDoesNotExist,
@@ -20,7 +21,6 @@ from django.db.models.query_utils import DeferredAttribute, deferred_class_facto
 from django.db.models.deletion import Collector
 from django.db.models.options import Options
 from django.db.models import signals
-from django.db.models.loading import register_models, get_model
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import curry
 from django.utils.encoding import smart_str, force_unicode
@@ -93,7 +93,7 @@ class ModelBase(type):
                 new_class._base_manager = new_class._base_manager._copy_to_model(new_class)
 
         # Bail out early if we have already created this class.
-        m = get_model(new_class._meta.app_label, name,
+        m = cache.get_model(new_class._meta.app_label, name,
                       seed_cache=False, only_installed=False)
         if m is not None:
             return m
@@ -200,13 +200,13 @@ class ModelBase(type):
             return new_class
 
         new_class._prepare()
-        register_models(new_class._meta.app_label, new_class)
+        cache.register_models(new_class._meta.app_label, new_class)
 
         # Because of the way imports happen (recursively), we may or may not be
         # the first time this model tries to register with the framework. There
         # should only be one class for each model, so we always return the
         # registered version.
-        return get_model(new_class._meta.app_label, name,
+        return cache.get_model(new_class._meta.app_label, name,
                          seed_cache=False, only_installed=False)
 
     def copy_managers(cls, base_managers):

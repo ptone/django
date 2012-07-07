@@ -109,7 +109,7 @@ def setup(verbosity, test_labels):
 
     # This import statement is intentionally delayed until after we
     # access settings because of the USE_I18N dependency.
-    from django.db.models.loading import load_app
+    from django.apps import cache
 
     # Load all the test model apps.
     test_labels_set = set([label.split('.')[0] for label in test_labels])
@@ -130,7 +130,7 @@ def setup(verbosity, test_labels):
         if not test_labels or module_name in test_labels_set:
             if verbosity >= 2:
                 print("Importing application %s" % module_name)
-            mod = load_app(module_label)
+            mod = cache.load_app(module_label)
             if mod:
                 if module_label not in settings.INSTALLED_APPS:
                     settings.INSTALLED_APPS.append(module_label)
@@ -178,8 +178,8 @@ def bisect_tests(bisection_label, options, test_labels):
 
     if not test_labels:
         # Get the full list of test labels to use for bisection
-        from django.db.models.loading import get_apps
-        test_labels = [app.__name__.split('.')[-2] for app in get_apps()]
+        from django.apps import cache
+        test_labels = [app.__name__.split('.')[-2] for app in cache.get_apps()]
 
     print('***** Bisecting test suite: %s' % ' '.join(test_labels))
 
@@ -239,8 +239,8 @@ def paired_tests(paired_test, options, test_labels):
     if not test_labels:
         print("")
         # Get the full list of test labels to use for bisection
-        from django.db.models.loading import get_apps
-        test_labels = [app.__name__.split('.')[-2] for app in get_apps()]
+        from django.apps import cache
+        test_labels = [app.__name__.split('.')[-2] for app in cache.get_apps()]
 
     print('***** Trying paired execution')
 
