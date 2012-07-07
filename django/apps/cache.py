@@ -201,20 +201,24 @@ class AppCache(object):
         app.add_parent_models(installed=installed)
         return models
 
+    def _unload_app(self, app):
+        self.loaded_apps.remove(app)
+        try:
+            del(self.app_models[app._meta.label])
+        except KeyError:
+            # this app may have had no model module
+            pass
+        self._get_models_cache.clear()
+
     def unload_app(self, app_name=None, app_label=None):
         if app_name:
-            # TODO
-            pass
+            for app in self.loaded_apps:
+                if app._meta.name == app_name:
+                    self._unload_app(app)
         elif app_label:
             app = self.find_app(app_label)
-            # TODO this needs to be a log more complete and thought out
-            self.loaded_apps.remove(app)
-            try:
-                del(self.app_models[app._meta.label])
-            except KeyError:
-                # this app may have had no model module
-                pass
-        self._get_models_cache.clear()
+            self._unload_app(app)
+
 
     def find_app(self, app_label):
         """
