@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 import copy
 
+from django.apps import cache
 from django.conf import settings
 from django.db import connection
 from django.db import models
-from django.db.models.loading import cache
 from django.core.management.color import no_style 
 from django.test import TestCase, skipIfDBFeature, skipUnlessDBFeature
 

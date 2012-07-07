@@ -2,10 +2,10 @@ from __future__ import absolute_import
 
 from operator import attrgetter
 
+from django.apps import cache
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sessions.backends.db import SessionStore
 from django.db.models import Count
-from django.db.models.loading import cache
 from django.test import TestCase
 
 from .models import (ResolveThis, Item, RelatedItem, Child, Leaf, Proxy,
