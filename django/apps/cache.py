@@ -75,8 +75,7 @@ class AppCache(object):
         """
         if self.loaded:
             return
-        self.write_lock.acquire()
-        try:
+        with self.write_lock:
             if self.loaded:
                 return
             for app_name in settings.INSTALLED_APPS:
@@ -104,8 +103,6 @@ class AppCache(object):
                 self.loaded = True
                 # send the post_apps_loaded signal
                 post_apps_loaded.send(sender=self, apps=self.loaded_apps)
-        finally:
-            self.write_lock.release()
 
     def get_app_class(self, app_name):
         """
