@@ -42,8 +42,8 @@ class Command(NoArgsCommand):
     def handle_noargs(self, **options):
         # XXX: (Temporary) workaround for ticket #1796: force early loading of all
         # models from installed apps.
-        from django.db.models.loading import get_models
-        get_models()
+        from django.apps import cache
+        cache._populate()
 
         use_plain = options.get('plain', False)
 

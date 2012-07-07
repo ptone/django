@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from django.apps import cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models.loading import get_app
 from django.test import TestCase
 from django.test.utils import override_settings
 
@@ -41,8 +40,8 @@ class NoModelTests(TestCase):
     def test_no_models(self):
         with self.assertRaisesRegexp(ImproperlyConfigured,
                     'App with label no_models could not be found.'):
-            get_app('no_models')
+            cache.get_app('no_models')
 
     def test_no_models_emptyOK(self):
-        self.assertEquals(get_app('no_models', emptyOK=True), None)
+        self.assertEquals(cache.get_app('no_models', emptyOK=True), None)
 

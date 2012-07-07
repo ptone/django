@@ -1,7 +1,10 @@
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
 from django.db import connection
+
+# these import are left here to trigger deprecation call currently invoked from loading.py
 from django.db.models.loading import get_apps, get_app, get_models, get_model, register_models
+
 from django.db.models.query import Q
 from django.db.models.expressions import F
 from django.db.models.manager import Manager
