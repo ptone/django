@@ -88,13 +88,11 @@ class AppCache(object):
                     app_kwargs = {}
                 if app_name in self.handled:
                     continue
-                self.load_app(app_name, app_kwargs, True)
+                self.load_app(app_name, app_kwargs, can_postpone=True,
+                        installed=True)
             if not self.nesting_level:
                 for app_name, app_kwargs in self.postponed:
-                    self.load_app(app_name, app_kwargs)
-                # assign models to app instances
-                for app in self.loaded_apps:
-                    app.add_parent_models()
+                    self.load_app(app_name, app_kwargs, installed=True)
 
                 # check if there is more than one app with the same
                 # db_prefix attribute
@@ -147,7 +145,8 @@ class AppCache(object):
                     return app_class
         return App.from_name(app_name)
 
-    def load_app(self, app_name, app_kwargs=None, can_postpone=False):
+    def load_app(self, app_name, app_kwargs=None, can_postpone=False,
+            installed=False):
         """
         Loads the app with the provided fully qualified name, and returns the
         model module.
@@ -199,7 +198,7 @@ class AppCache(object):
 
         self.nesting_level -= 1
         app._meta.models_module = models
-        app.add_parent_models()
+        app.add_parent_models(installed=installed)
         return models
 
     def unload_app(self, app_name=None, app_label=None):
