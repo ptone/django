@@ -21,7 +21,7 @@ get_models = cache.get_models
 get_model = cache.get_model
 register_models = cache.register_models
 load_app = cache.load_app
-app_cache_ready = cache.app_cache_ready
+app_cache_ready = cache.ready
 
 warnings.warn(
     'The utilities in django.db.models.loading have been moved to '
