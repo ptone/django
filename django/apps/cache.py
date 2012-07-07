@@ -66,8 +66,6 @@ class AppCache(object):
         """
         self._reset()
         self._populate()
-        # x = str([app._meta.label for app in self.loaded_apps])
-        sys.stderr.write('\ncache reloaded: %s apps\n\n' % len(self.loaded_apps))
 
     def _populate(self):
         """
