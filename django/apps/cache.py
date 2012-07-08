@@ -1,6 +1,7 @@
 import sys
 import os
 import threading
+import warnings
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -248,7 +249,7 @@ class AppCache(object):
         return [app._meta.models_module for app in self.loaded_apps
                 if app._meta.models_module]
 
-    def get_app(self, app_label, emptyOK=False):
+    def get_model_module(self, app_label, emptyOK=False):
         """
         Returns the module containing the models for the given app_label. If
         the app has no models in it and 'emptyOK' is True, returns None.
@@ -264,6 +265,12 @@ class AppCache(object):
                 return mod
         raise ImproperlyConfigured(
                 "App with label %s could not be found." % app_label)
+
+    def get_app(self, app_label, emptyOK=False):
+        warnings.warn(
+            'get_app is deprecated, please use cache.get_models_module',
+            PendingDeprecationWarning)
+        return self.get_model_module(app_label, emptyOK=emptyOK)
 
     def get_app_errors(self):
         """
