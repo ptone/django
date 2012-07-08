@@ -101,7 +101,7 @@ class DeferRegressionTest(TestCase):
         # Regression for #11936 - loading.get_models should not return deferred
         # models by default.
         klasses = sorted(
-            cache.get_models(cache.get_app("defer_regress")),
+            cache.get_models(cache.get_models_module("defer_regress")),
             key=lambda klass: klass.__name__
         )
         self.assertEqual(
@@ -122,7 +122,7 @@ class DeferRegressionTest(TestCase):
             map(
                 attrgetter("__name__"),
                 cache.get_models(
-                    cache.get_app("defer_regress"), include_deferred=True
+                    cache.get_models_module("defer_regress"), include_deferred=True
                 ),
             )
         )

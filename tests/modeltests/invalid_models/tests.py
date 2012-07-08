@@ -28,7 +28,7 @@ class InvalidModelTestCase(unittest.TestCase):
         cache.unload_app(app_label="invalid_models_app")
 
     def test_invalid_models(self):
-        module = cache.get_app('invalid_models_app')
+        module = cache.get_models_module('invalid_models_app')
         count = get_validation_errors(self.stdout, module)
         self.stdout.seek(0)
         error_log = self.stdout.read()
