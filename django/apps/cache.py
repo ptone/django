@@ -91,7 +91,8 @@ class AppCache(object):
             if not self.nesting_level:
                 for app_name, app_kwargs in self.postponed:
                     self.load_app(app_name, app_kwargs, installed=True)
-
+                for app in self.loaded_apps:
+                    app.add_parent_models(installed=True)
                 # check if there is more than one app with the same
                 # db_prefix attribute
                 for app1 in self.loaded_apps:
