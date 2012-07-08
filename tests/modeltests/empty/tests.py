@@ -40,8 +40,8 @@ class NoModelTests(TestCase):
     def test_no_models(self):
         with self.assertRaisesRegexp(ImproperlyConfigured,
                     'App with label no_models could not be found.'):
-            cache.get_app('no_models')
+            cache.get_models_module('no_models')
 
     def test_no_models_emptyOK(self):
-        self.assertEquals(cache.get_app('no_models', emptyOK=True), None)
+        self.assertEquals(cache.get_models_module('no_models', emptyOK=True), None)
 

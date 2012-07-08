@@ -1,8 +1,9 @@
 import unittest as real_unittest
 
+from django.apps import cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import get_app, get_apps
+from django.db.models import get_apps
 from django.test import _doctest as doctest
 from django.test.utils import setup_test_environment, teardown_test_environment
 from django.test.testcases import OutputChecker, DocTestRunner, TestCase
@@ -99,7 +100,7 @@ def build_test(label):
     #
     # First, look for TestCase instances with a name that matches
     #
-    app_module = get_app(parts[0])
+    app_module = cache.get_models_module(parts[0])
     test_module = get_tests(app_module)
     TestClass = getattr(app_module, parts[1], None)
 
@@ -253,7 +254,7 @@ class DjangoTestSuiteRunner(object):
                 if '.' in label:
                     suite.addTest(build_test(label))
                 else:
-                    app = get_app(label)
+                    app = cache.get_models_module(label)
                     suite.addTest(build_suite(app))
         else:
             for app in get_apps():
