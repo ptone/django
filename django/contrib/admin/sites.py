@@ -1,6 +1,6 @@
 from functools import update_wrapper
 
-from django import apps
+from django.apps import cache
 from django.http import Http404, HttpResponseRedirect
 from django.contrib.admin import ModelAdmin, actions
 from django.contrib.admin.forms import AdminAuthenticationForm
@@ -366,7 +366,7 @@ class AdminSite(object):
                         app_dict[app_label]['models'].append(model_dict)
                     else:
                         app_dict[app_label] = {
-                            'name': apps.find_app(app_label)._meta.verbose_name,
+                            'name': cache.get_app_instance(app_label)._meta.verbose_name,
                             'app_url': reverse('admin:app_list', kwargs={'app_label': app_label}, current_app=self.name),
                             'has_module_perms': has_module_perms,
                             'models': [model_dict],
@@ -393,7 +393,7 @@ class AdminSite(object):
         user = request.user
         has_module_perms = user.has_module_perms(app_label)
         app_dict = {}
-        app = apps.find_app(app_label)
+        app = cache.get_app_instance(app_label)
         for model, model_admin in self._registry.items():
             if app_label == model._meta.app_label:
                 if has_module_perms:
