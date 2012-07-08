@@ -256,7 +256,7 @@ class DjangoTestSuiteRunner(object):
                     app = cache.get_models_module(label)
                     suite.addTest(build_suite(app))
         else:
-            for app in cache.get_models_modules:
+            for app in cache.get_models_modules():
                 suite.addTest(build_suite(app))
 
         if extra_tests:
