@@ -249,7 +249,7 @@ class AppCache(object):
         return [app._meta.models_module for app in self.loaded_apps
                 if app._meta.models_module]
 
-    def get_model_module(self, app_label, emptyOK=False):
+    def get_models_module(self, app_label, emptyOK=False):
         """
         Returns the module containing the models for the given app_label. If
         the app has no models in it and 'emptyOK' is True, returns None.
@@ -270,13 +270,13 @@ class AppCache(object):
         warnings.warn(
             'get_app is deprecated, please use cache.get_models_module',
             PendingDeprecationWarning)
-        return self.get_model_module(app_label, emptyOK=emptyOK)
+        return self.get_models_module(app_label, emptyOK=emptyOK)
 
     def get_apps(self):
         warnings.warn(
             'get_apps is deprecated, please use cache.get_models_modules',
             PendingDeprecationWarning)
-        return self.get_model_modules()
+        return self.get_models_modules()
 
     def get_app_errors(self):
         """
