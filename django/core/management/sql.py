@@ -178,7 +178,7 @@ def custom_sql_for_model(model, style, connection):
 
 def emit_post_sync_signal(created_models, verbosity, interactive, db):
     # Emit the post_sync signal for every application.
-    for app in models.get_apps():
+    for app in cache.get_models_modules():
         app_cls = cache.find_app_by_models_module(app)
         app_name = app_cls._meta.label
         if verbosity >= 2:

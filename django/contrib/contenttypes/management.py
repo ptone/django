@@ -1,4 +1,4 @@
-from django.apps import cache, get_apps, get_models
+from django.apps import cache, get_models
 from django.contrib.contenttypes.models import ContentType
 from django.utils.encoding import smart_text
 from django.utils import six
@@ -74,7 +74,7 @@ If you're unsure, answer 'no'.
                 print("Stale content types remain.")
 
 def update_all_contenttypes(verbosity=2, **kwargs):
-    for app in get_apps():
+    for app in cache.get_models_modules():
         update_contenttypes(app, None, verbosity, **kwargs)
 
 signals.post_syncdb.connect(update_contenttypes)

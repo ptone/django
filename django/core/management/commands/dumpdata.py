@@ -29,7 +29,7 @@ class Command(BaseCommand):
     args = '[appname appname.ModelName ...]'
 
     def handle(self, *app_labels, **options):
-        from django.db.models import get_apps, get_model
+        from django.db.models import get_model
 
         format = options.get('format')
         indent = options.get('indent')
@@ -56,7 +56,7 @@ class Command(BaseCommand):
                     raise CommandError('Unknown app in excludes: %s' % exclude)
 
         if len(app_labels) == 0:
-            app_list = SortedDict((app, None) for app in get_apps() if app not in excluded_apps)
+            app_list = SortedDict((app, None) for app in cache.get_models_modules() if app not in excluded_apps)
         else:
             app_list = SortedDict()
             for label in app_labels:

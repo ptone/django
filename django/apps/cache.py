@@ -241,7 +241,7 @@ class AppCache(object):
         """
         return self.loaded
 
-    def get_apps(self):
+    def get_models_modules(self):
         """
         Returns a list of all models modules.
         """
@@ -271,6 +271,12 @@ class AppCache(object):
             'get_app is deprecated, please use cache.get_models_module',
             PendingDeprecationWarning)
         return self.get_model_module(app_label, emptyOK=emptyOK)
+
+    def get_apps(self):
+        warnings.warn(
+            'get_apps is deprecated, please use cache.get_models_modules',
+            PendingDeprecationWarning)
+        return self.get_model_modules()
 
     def get_app_errors(self):
         """

@@ -129,7 +129,7 @@ class Deserializer(object):
         # hack to make sure that the models have all been loaded before
         # deserialization starts (otherwise subclass calls to get_model()
         # and friends might fail...)
-        models.get_apps()
+        cache._populate()
 
     def __iter__(self):
         return self

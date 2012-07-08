@@ -3,7 +3,6 @@ import unittest as real_unittest
 from django.apps import cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models import get_apps
 from django.test import _doctest as doctest
 from django.test.utils import setup_test_environment, teardown_test_environment
 from django.test.testcases import OutputChecker, DocTestRunner
@@ -257,7 +256,7 @@ class DjangoTestSuiteRunner(object):
                     app = cache.get_models_module(label)
                     suite.addTest(build_suite(app))
         else:
-            for app in get_apps():
+            for app in cache.get_models_modules:
                 suite.addTest(build_suite(app))
 
         if extra_tests:
