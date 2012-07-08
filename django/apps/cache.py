@@ -161,7 +161,7 @@ class AppCache(object):
 
         # check if an app instance with app_name already exists, if not
         # then create one
-        app = self.find_app(app_name.split('.')[-1])
+        app = self.get_app_instance(app_name.split('.')[-1])
         if not app:
             app_class = self.get_app_class(app_name)
             app = app_class(**app_kwargs)
@@ -212,11 +212,11 @@ class AppCache(object):
                 if app._meta.name == app_name:
                     self._unload_app(app)
         elif app_label:
-            app = self.find_app(app_label)
+            app = self.get_app_instance(app_label)
             self._unload_app(app)
 
 
-    def find_app(self, app_label):
+    def get_app_instance(self, app_label):
         """
         Returns the app instance that matches the given label.
         """
@@ -255,7 +255,7 @@ class AppCache(object):
         the app has no models in it and 'emptyOK' is True, returns None.
         """
         self._populate()
-        app = self.find_app(app_label)
+        app = self.get_app_instance(app_label)
         if app:
             mod = app._meta.models_module
             if mod is None:
@@ -314,7 +314,7 @@ class AppCache(object):
         app_list = []
         if app_mod and only_installed:
             app_label = app_mod.__name__.split('.')[-2]
-            app = self.find_app(app_label)
+            app = self.get_app_instance(app_label)
             if app:
                 app_list = [app._meta.models]
         else:
@@ -343,7 +343,7 @@ class AppCache(object):
         if seed_cache:
             self._populate()
         if only_installed:
-            app = self.find_app(app_label)
+            app = self.get_app_instance(app_label)
             if not app:
                 return
             return app._meta.models.get(model_name.lower())
@@ -353,7 +353,7 @@ class AppCache(object):
         """
         Register a set of models as belonging to an app.
         """
-        app = self.find_app(app_label)
+        app = self.get_app_instance(app_label)
         for model in models:
             model_name = model._meta.object_name.lower()
             model_dict = self.app_models.setdefault(app_label, SortedDict())

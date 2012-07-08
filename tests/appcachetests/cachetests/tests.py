@@ -530,8 +530,8 @@ class RegisterModelsTests(AppCacheTestCase):
         self.assertEquals(cache.app_models['model_app']['person'], Person)
 
 
-class FindAppTests(AppCacheTestCase):
-    """Tests for the find_app function"""
+class GetAppInstanceTests(AppCacheTestCase):
+    """Tests for the get_app_instance function"""
 
     def test_seeded(self):
         """
@@ -541,7 +541,7 @@ class FindAppTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('model_app',)
         cache._populate()
         self.assertTrue(cache.ready())
-        app = cache.find_app('model_app')
+        app = cache.get_app_instance('model_app')
         self.assertEquals(app._meta.name, 'model_app')
         self.assertTrue(isinstance(app, App))
         self.assertEquals(app.__repr__(), '<App: model_app>')
@@ -553,7 +553,7 @@ class FindAppTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('model_app',)
         cache._populate()
         self.assertTrue(cache.ready())
-        app = cache.find_app('model_app_NOTVALID')
+        app = cache.get_app_instance('model_app_NOTVALID')
         self.assertEquals(app, None)
 
     def test_unseeded(self):
@@ -563,7 +563,7 @@ class FindAppTests(AppCacheTestCase):
         from django.apps import App
         cache.load_app('model_app')
         self.assertFalse(cache.ready())
-        app = cache.find_app('model_app')
+        app = cache.get_app_instance('model_app')
         self.assertEquals(app._meta.name, 'model_app')
         self.assertTrue(isinstance(app, App))
 
@@ -581,10 +581,10 @@ class FindAppTests(AppCacheTestCase):
             }),
         )
         cache._populate()
-        admin = cache.find_app('admin')
+        admin = cache.get_app_instance('admin')
         self.assertRaises(AttributeError, lambda: admin._meta.spam)
         self.assertEquals(admin.spam, 'spam')
-        model_app = cache.find_app('model_app')
+        model_app = cache.get_app_instance('model_app')
         self.assertEquals(model_app._meta.db_prefix, 'foobar_prefix')
         self.assertEquals(model_app.eggs, 'eggs')
 
@@ -608,7 +608,7 @@ class FindAppTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app.app.MyApp',)
         cache._populate()
-        model_app = cache.find_app('model_app')
+        model_app = cache.get_app_instance('model_app')
         self.assertEquals(model_app._meta.db_prefix, 'model_app')
         self.assertEquals(model_app.some_attribute, True)
 
@@ -619,7 +619,7 @@ class FindAppTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('model_app.app.MyApp',)
         cache._populate()
         from model_app import othermodels
-        app = cache.find_app('model_app')
+        app = cache.get_app_instance('model_app')
         found_app = cache.find_app_by_models_module(othermodels)
         self.assertEquals(found_app, app)
 
