@@ -179,7 +179,7 @@ def bisect_tests(bisection_label, options, test_labels):
     if not test_labels:
         # Get the full list of test labels to use for bisection
         from django.apps import cache
-        test_labels = [app.__name__.split('.')[-2] for app in cache.get_apps()]
+        test_labels = [app.__name__.split('.')[-2] for app in cache.get_models_modules()]
 
     print('***** Bisecting test suite: %s' % ' '.join(test_labels))
 
@@ -240,7 +240,7 @@ def paired_tests(paired_test, options, test_labels):
         print("")
         # Get the full list of test labels to use for bisection
         from django.apps import cache
-        test_labels = [app.__name__.split('.')[-2] for app in cache.get_apps()]
+        test_labels = [app.__name__.split('.')[-2] for app in cache.get_models_modules()]
 
     print('***** Trying paired execution')
 

@@ -6,6 +6,7 @@ except ImportError:
     import dummy_thread as thread
 from contextlib import contextmanager
 
+from django.apps import cache
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS
 from django.db.backends import util
@@ -941,7 +942,7 @@ class BaseDatabaseIntrospection(object):
         """
         from django.db import models, router
         tables = set()
-        for app in models.get_apps():
+        for app in cache.get_models_modules():
             for model in models.get_models(app):
                 if not model._meta.managed:
                     continue
@@ -963,7 +964,7 @@ class BaseDatabaseIntrospection(object):
         "Returns a set of all models represented by the provided list of table names."
         from django.db import models, router
         all_models = []
-        for app in models.get_apps():
+        for app in cache.get_models_modules():
             for model in models.get_models(app):
                 if router.allow_syncdb(self.connection.alias, model):
                     all_models.append(model)
@@ -977,7 +978,7 @@ class BaseDatabaseIntrospection(object):
         "Returns a list of information about all DB sequences for all models in all apps."
         from django.db import models, router
 
-        apps = models.get_apps()
+        apps = cache.get_models_modules()
         sequence_list = []
 
         for app in apps:
