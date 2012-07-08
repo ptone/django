@@ -1,4 +1,4 @@
-from django.apps import cache, get_models
+from django.apps import cache
 from django.contrib.contenttypes.models import ContentType
 from django.utils.encoding import smart_text
 from django.utils import six
@@ -11,7 +11,7 @@ def update_contenttypes(app, created_models, verbosity=2, **kwargs):
     """
     app_cls = cache.find_app_by_models_module(app)
     ContentType.objects.clear_cache()
-    app_models = get_models(app)
+    app_models = cache.get_models(app)
     if not app_models:
         return
     # They all have the same app_label, get the first one.
