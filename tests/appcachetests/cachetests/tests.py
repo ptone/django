@@ -146,8 +146,8 @@ class GetAppClassTests(AppCacheTestCase):
                           settings.INSTALLED_APPS[0])
 
 
-class GetAppsTests(AppCacheTestCase):
-    """Tests for the get_apps function"""
+class GetModelsModulesTests(AppCacheTestCase):
+    """Tests for the get_models_modules function"""
 
     def test_app_classes(self):
         """
@@ -155,7 +155,7 @@ class GetAppsTests(AppCacheTestCase):
         installed via the INSTALLED_APPS setting
         """
         settings.INSTALLED_APPS = ('model_app.app.MyApp',)
-        apps = cache.get_apps()
+        apps = cache.get_models_modules()
         self.assertTrue(cache.ready())
         self.assertEquals(apps[0].__name__, 'model_app.othermodels')
 
@@ -165,7 +165,7 @@ class GetAppsTests(AppCacheTestCase):
         via the INSTALLED_APPS setting
         """
         settings.INSTALLED_APPS = ('model_app',)
-        apps = cache.get_apps()
+        apps = cache.get_models_modules()
         self.assertTrue(cache.ready())
         self.assertEquals(apps[0].__name__, 'model_app.models')
 
@@ -175,7 +175,7 @@ class GetAppsTests(AppCacheTestCase):
         only one of them is loaded
         """
         settings.INSTALLED_APPS = ('model_app.app.MyApp', 'model_app')
-        apps = cache.get_apps()
+        apps = cache.get_models_modules()
         self.assertEquals(len(apps), 1)
         self.assertEquals(apps[0].__name__, 'model_app.othermodels')
 
@@ -184,7 +184,7 @@ class GetAppsTests(AppCacheTestCase):
         Test that modules that don't contain models are not returned
         """
         settings.INSTALLED_APPS = ('nomodel_app',)
-        self.assertEqual(cache.get_apps(), [])
+        self.assertEqual(cache.get_models_modules(), [])
         self.assertTrue(cache.ready())
 
     def test_db_prefix_exception(self):
@@ -194,7 +194,7 @@ class GetAppsTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('nomodel_app.app.MyApp',
                                    'model_app.app.MyOtherApp')
-        self.assertRaises(ImproperlyConfigured, cache.get_apps)
+        self.assertRaises(ImproperlyConfigured, cache.get_models_modules)
 
 
 class GetModelsModuleTests(AppCacheTestCase):

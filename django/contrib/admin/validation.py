@@ -1,3 +1,4 @@
+from django.apps import cache
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.db.models.fields import FieldDoesNotExist
@@ -19,7 +20,7 @@ def validate(cls, model):
     """
     # Before we can introspect models, they need to be fully loaded so that
     # inter-relations are set up correctly. We force that here.
-    models.get_apps()
+    cache._populate()
 
     opts = model._meta
     validate_base(cls, model)

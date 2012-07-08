@@ -74,7 +74,7 @@ The full error: %s""" % (connection.settings_dict['NAME'], e))
             # applications to respond as if the database had been
             # sync'd from scratch.
             all_models = []
-            for app in models.get_apps():
+            for app in cache.get_models_modules():
                 all_models.extend([
                     m for m in models.get_models(app, include_auto_created=True)
                     if router.allow_syncdb(db, m)
