@@ -197,8 +197,8 @@ class GetAppsTests(AppCacheTestCase):
         self.assertRaises(ImproperlyConfigured, cache.get_apps)
 
 
-class GetAppTests(AppCacheTestCase):
-    """Tests for the get_app function"""
+class GetModelsModuleTests(AppCacheTestCase):
+    """Tests for the get_models_module function"""
 
     def test_installed_apps(self):
         """
@@ -206,7 +206,7 @@ class GetAppTests(AppCacheTestCase):
         via the INSTALLED_APPS setting
         """
         settings.INSTALLED_APPS = ('model_app',)
-        mod = cache.get_app('model_app')
+        mod = cache.get_models_module('model_app')
         self.assertTrue(cache.ready())
         self.assertEquals(mod.__name__, 'model_app.models')
 
@@ -215,7 +215,7 @@ class GetAppTests(AppCacheTestCase):
         Test that an ImproperlyConfigured exception is raised if an app
         could not be found
         """
-        self.assertRaises(ImproperlyConfigured, cache.get_app,
+        self.assertRaises(ImproperlyConfigured, cache.get_models_module,
                           'notarealapp')
         self.assertTrue(cache.ready())
 
@@ -225,7 +225,7 @@ class GetAppTests(AppCacheTestCase):
         has no models
         """
         settings.INSTALLED_APPS = ('nomodel_app',)
-        module = cache.get_app('nomodel_app', emptyOK=True)
+        module = cache.get_models_module('nomodel_app', emptyOK=True)
         self.assertTrue(cache.ready())
         self.failUnless(module is None)
 
@@ -235,7 +235,7 @@ class GetAppTests(AppCacheTestCase):
         has no modules and the emptyOK arg is False
         """
         settings.INSTALLED_APPS = ('nomodel_app',)
-        self.assertRaises(ImproperlyConfigured, cache.get_app,
+        self.assertRaises(ImproperlyConfigured, cache.get_models_module,
                           'nomodel_app')
         self.assertTrue(cache.ready())
 
