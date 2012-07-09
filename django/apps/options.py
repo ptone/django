@@ -14,6 +14,7 @@ class AppOptions(object):
         self.meta = meta
         self.errors = []
         self.models = SortedDict()
+        self.installed = False
 
     def contribute_to_class(self, cls, name):
         cls._meta = self
