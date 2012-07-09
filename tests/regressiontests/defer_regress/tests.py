@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from operator import attrgetter
 
-from django.apps import cache
+from django.apps import app_cache
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sessions.backends.db import SessionStore
 from django.db.models import Count
@@ -101,7 +101,7 @@ class DeferRegressionTest(TestCase):
         # Regression for #11936 - loading.get_models should not return deferred
         # models by default.
         klasses = sorted(
-            cache.get_models(cache.get_models_module("defer_regress")),
+            app_cache.get_models(app_cache.get_models_module("defer_regress")),
             key=lambda klass: klass.__name__
         )
         self.assertEqual(
@@ -121,8 +121,8 @@ class DeferRegressionTest(TestCase):
         klasses = sorted(
             map(
                 attrgetter("__name__"),
-                cache.get_models(
-                    cache.get_models_module("defer_regress"), include_deferred=True
+                app_cache.get_models(
+                    app_cache.get_models_module("defer_regress"), include_deferred=True
                 ),
             )
         )

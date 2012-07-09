@@ -6,7 +6,7 @@ packages.
 import os
 import sys
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.template.base import TemplateDoesNotExist
@@ -17,7 +17,7 @@ from django.utils.importlib import import_module
 # At compile time, cache the directories to search.
 fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
 app_template_dirs = []
-for app in cache.loaded_apps:
+for app in app_cache.loaded_apps:
     template_dir = os.path.join(app._meta.path, 'templates')
     if os.path.isdir(template_dir):
         app_template_dirs.append(template_dir.decode(fs_encoding))

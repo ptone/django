@@ -1,6 +1,6 @@
 from functools import update_wrapper, partial
 from django import forms
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.forms.formsets import all_valid
 from django.forms.models import (modelform_factory, modelformset_factory,
@@ -1003,7 +1003,7 @@ class ModelAdmin(BaseModelAdmin):
             'media': media,
             'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
-            'app_label': cache.get_app_instance(opts.app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(opts.app_label)._meta.verbose_name,
         }
         context.update(extra_context or {})
         return self.render_change_form(request, context, form_url=form_url, add=True)
@@ -1095,7 +1095,7 @@ class ModelAdmin(BaseModelAdmin):
             'media': media,
             'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
-            'app_label': cache.get_app_instance(opts.app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(opts.app_label)._meta.verbose_name,
         }
         context.update(extra_context or {})
         return self.render_change_form(request, context, change=True, obj=obj, form_url=form_url)
@@ -1238,7 +1238,7 @@ class ModelAdmin(BaseModelAdmin):
             'cl': cl,
             'media': media,
             'has_add_permission': self.has_add_permission(request),
-            'app_label': cache.get_app_instance(app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(app_label)._meta.verbose_name,
             'action_form': action_form,
             'actions_on_top': self.actions_on_top,
             'actions_on_bottom': self.actions_on_bottom,
@@ -1305,7 +1305,7 @@ class ModelAdmin(BaseModelAdmin):
             "perms_lacking": perms_needed,
             "protected": protected,
             "opts": opts,
-            "app_label": cache.get_app_instance(app_label)._meta.verbose_name,
+            "app_label": app_cache.get_app_instance(app_label)._meta.verbose_name,
         }
         context.update(extra_context or {})
 
@@ -1332,7 +1332,7 @@ class ModelAdmin(BaseModelAdmin):
             'action_list': action_list,
             'module_name': capfirst(force_unicode(opts.verbose_name_plural)),
             'object': obj,
-            'app_label': cache.get_app_instance(app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(app_label)._meta.verbose_name,
             'opts': opts,
         }
         context.update(extra_context or {})

@@ -1,7 +1,7 @@
 import re
 from bisect import bisect
 
-from django.apps import cache as appcache
+from django.apps import app_cache
 from django.conf import settings
 from django.db.models.related import RelatedObject
 from django.db.models.fields.related import ManyToManyRel
@@ -112,7 +112,7 @@ class Options(object):
         # Or use the app label when no app instance was found, which happens
         # when the app cache is not initialized but the model is imported
         if not self.db_table:
-            app = appcache.get_app_instance(self.app_label)
+            app = app_cache.get_app_instance(self.app_label)
             prefix = app and app._meta.db_prefix or self.app_label
             self.db_table = truncate_name("%s_%s" % (prefix, self.module_name),
                                           connection.ops.max_name_length())
@@ -349,7 +349,7 @@ class Options(object):
             cache[f.name] = (f, model, True, True)
         for f, model in self.get_fields_with_model():
             cache[f.name] = (f, model, True, False)
-        if appcache.ready():
+        if app_cache.ready():
             self._name_map = cache
         return cache
 
@@ -401,7 +401,7 @@ class Options(object):
                     cache[obj] = model
         # Collect also objects which are in relation to some proxy child/parent of self.
         proxy_cache = cache.copy()
-        for klass in appcache.get_models(include_auto_created=True, only_installed=False):
+        for klass in app_cache.get_models(include_auto_created=True, only_installed=False):
             for f in klass._meta.local_fields:
                 if f.rel and not isinstance(f.rel.to, basestring):
                     if self == f.rel.to._meta:
@@ -443,11 +443,11 @@ class Options(object):
                     cache[obj] = parent
                 else:
                     cache[obj] = model
-        for klass in appcache.get_models(only_installed=False):
+        for klass in app_cache.get_models(only_installed=False):
             for f in klass._meta.local_many_to_many:
                 if f.rel and not isinstance(f.rel.to, basestring) and self == f.rel.to._meta:
                     cache[RelatedObject(f.rel.to, klass, f)] = None
-        if appcache.ready():
+        if app_cache.ready():
             self._related_many_to_many_cache = cache
         return cache
 

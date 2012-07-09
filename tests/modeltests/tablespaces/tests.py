@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import copy
 
-from django.apps import cache
 from django.conf import settings
 from django.db import connection
 from django.db import models
@@ -33,7 +32,6 @@ class TablespacesTests(TestCase):
     def tearDown(self):
         for model in Article, Authors, Reviewers, Scientist:
             model._meta.managed = False
-        # cache._reload()
 
     def assertNumContains(self, haystack, needle, count):
         real_count = haystack.count(needle)

@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import os
 import re
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.management.base import CommandError
 from django.db import models
@@ -23,7 +23,7 @@ def sql_create(app, style, connection):
     # We trim models from the current app so that the sqlreset command does not
     # generate invalid SQL (leaving models out of known_models is harmless, so
     # we can be conservative).
-    app_models = cache.get_models(app, include_auto_created=True)
+    app_models = app_cache.get_models(app, include_auto_created=True)
     final_output = []
     tables = connection.introspection.table_names()
     known_models = set([model for model in connection.introspection.installed_models(tables) if model not in app_models])
@@ -75,7 +75,7 @@ def sql_delete(app, style, connection):
     to_delete = set()
 
     references_to_delete = {}
-    app_models = cache.get_models(app, include_auto_created=True)
+    app_models = app_cache.get_models(app, include_auto_created=True)
     for model in app_models:
         if cursor and connection.introspection.table_name_converter(model._meta.db_table) in table_names:
             # The table exists, so it needs to be dropped
@@ -118,7 +118,7 @@ def sql_custom(app, style, connection):
     "Returns a list of the custom table modifying SQL statements for the given app."
     output = []
 
-    app_models = cache.get_models(app)
+    app_models = app_cache.get_models(app)
 
     for model in app_models:
         output.extend(custom_sql_for_model(model, style, connection))
@@ -128,7 +128,7 @@ def sql_custom(app, style, connection):
 def sql_indexes(app, style, connection):
     "Returns a list of the CREATE INDEX SQL statements for all models in the given app."
     output = []
-    for model in cache.get_models(app):
+    for model in app_cache.get_models(app):
         output.extend(connection.creation.sql_indexes_for_model(model, style))
     return output
 
@@ -138,7 +138,7 @@ def sql_all(app, style, connection):
 
 def custom_sql_for_model(model, style, connection):
     opts = model._meta
-    app_dir = os.path.normpath(os.path.join(os.path.dirname(cache.get_models_module(model._meta.app_label).__file__), 'sql'))
+    app_dir = os.path.normpath(os.path.join(os.path.dirname(app_cache.get_models_module(model._meta.app_label).__file__), 'sql'))
     output = []
 
     # Post-creation SQL should come before any initial SQL data is loaded.
@@ -171,8 +171,8 @@ def custom_sql_for_model(model, style, connection):
 
 def emit_post_sync_signal(created_models, verbosity, interactive, db):
     # Emit the post_sync signal for every application.
-    for app in cache.get_models_modules():
-        app_cls = cache.find_app_by_models_module(app)
+    for app in app_cache.get_models_modules():
+        app_cls = app_cache.find_app_by_models_module(app)
         app_name = app_cls._meta.label
         if verbosity >= 2:
             print("Running post-sync handlers for application %s" % app_name)

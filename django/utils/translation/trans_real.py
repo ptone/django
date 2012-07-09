@@ -9,7 +9,7 @@ import gettext as gettext_module
 from io import StringIO
 from threading import local
 
-from django.apps import cache
+from django.apps import app_cache
 from django.utils.importlib import import_module
 from django.utils.safestring import mark_safe, SafeData
 
@@ -147,7 +147,7 @@ def translation(language):
                     res.merge(t)
             return res
 
-        for app in reversed(cache.loaded_apps):
+        for app in reversed(app_cache.loaded_apps):
             apppath = os.path.join(str(app._meta.path), 'locale')
 
             if os.path.isdir(apppath):

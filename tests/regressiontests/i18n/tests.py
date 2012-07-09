@@ -8,7 +8,7 @@ import pickle
 from threading import local
 
 from django.conf import settings
-from django.apps import cache
+from django.apps import app_cache
 from django.template import Template, Context
 from django.template.base import TemplateSyntaxError
 from django.test import TestCase, RequestFactory
@@ -861,12 +861,12 @@ class AppResolutionOrderI18NTests(ResolutionOrderI18NTests):
 
     def setUp(self):
         # TODO should this be a deep copy?
-        self.old_loaded_apps = cache.loaded_apps
-        cache.loaded_apps = [MockedApp()] + cache.loaded_apps
+        self.old_loaded_apps = app_cache.loaded_apps
+        app_cache.loaded_apps = [MockedApp()] + app_cache.loaded_apps
         super(AppResolutionOrderI18NTests, self).setUp()
 
     def tearDown(self):
-        cache.loaded_apps = self.old_loaded_apps
+        app_cache.loaded_apps = self.old_loaded_apps
         super(AppResolutionOrderI18NTests, self).tearDown()
 
 # TODO this used to be a comparison to 'APP', but mocked app has no translation logic
