@@ -66,14 +66,44 @@ class App(object):
         cls_name = module_name_re.sub(upper, name.split('.')[-1])
         return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': name})
 
-    def add_parent_models(self, installed=False):
+    @classmethod
+    def from_label(cls, label):
+        label = str(label)
+        upper = lambda match: match.group(1).upper()
+        cls_name = module_name_re.sub(upper, label)
+        return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': label})
+
+    def register_models(self):
         from django.apps import app_cache
+        # make sure models registered at import time are assigned to the app
+        same_label_apps = [app for app in app_cache.loaded_apps if app._meta.label == self._meta.label]
+        for app in same_label_apps:
+            if app._meta.naive and app != self:
+                self._meta.models.update(app._meta.models)
+                k = app._meta.models.keys()[0]
+                app_cache.loaded_apps.remove(app)
+
+        for model in self._meta.models.itervalues():
+            # update the models reference to the app it is associated with
+            model._meta.app = self
+            # update the db_table of the model if set by the app
+            if (self._meta.label != self._meta.db_prefix and
+                    model._meta.db_table.startswith(self._meta.label)):
+                # this should be safe as it should always have been called
+                # early on before any syncdb
+                model._meta.db_table = model._meta.db_table.replace(
+                        self._meta.label,
+                        self._meta.db_prefix)
+
         parents = [p for p in self.__class__.mro()
                     if hasattr(p, '_meta')]
         for parent in reversed(parents):
-            parent_models = app_cache.app_models.get(parent._meta.label, {})
-            # update app_label and installed attribute of parent models
+            parent._meta.installed = self._meta.installed
+            parent_models = parent._meta.models
             for model in parent_models.itervalues():
-                model._meta.app_label = self._meta.label
-                model._meta.installed = installed
+                pass
+                # TODO what really should these parents be set to here?
+                # model._meta.app_label = self._meta.label
+                # model._meta.app = self
             self._meta.models.update(parent_models)
+        app_cache._get_models_cache.clear()

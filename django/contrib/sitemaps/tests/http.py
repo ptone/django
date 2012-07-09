@@ -88,7 +88,7 @@ class HTTPSitemapTests(SitemapTestsBase):
     def test_requestsite_sitemap(self):
         # Make sure hitting the flatpages sitemap without the sites framework
         # installed doesn't raise an exception
-        Site._meta.installed = False
+        Site._meta.app._meta.installed = False
         response = self.client.get('/simple/sitemap.xml')
         self.assertEqual(response.content, """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -112,7 +112,7 @@ class HTTPSitemapTests(SitemapTestsBase):
         Sitemap.get_urls if Site objects exists, but the sites framework is not
         actually installed.
         """
-        Site._meta.installed = False
+        Site._meta.app._meta.installed = False
         self.assertRaises(ImproperlyConfigured, Sitemap().get_urls)
 
     def test_sitemap_item(self):

@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
 from django.apps import app_cache
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
-from django.test.utils import override_settings
 
 from .models import Empty
 
@@ -31,11 +29,10 @@ class NoModelTests(TestCase):
     It seemed like an appropriate home for it.
     """
     def setUp(self):
-        app_cache.load_app("modeltests.empty.no_models")
+        app_cache.load_app("modeltests.empty.no_models", installed=True)
 
     def tearDown(self):
-        # TODO a cache.unload_app would be perhaps good to have?
-        pass
+        app_cache.unload_app(app_label='no_models')
 
     def test_no_models(self):
         with self.assertRaisesRegexp(ImproperlyConfigured,

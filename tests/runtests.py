@@ -132,11 +132,12 @@ def setup(verbosity, test_labels):
         if not test_labels or module_name in test_labels_set:
             if verbosity >= 2:
                 print("Importing application %s" % module_name)
-            mod = app_cache.load_app(module_label)
+            mod = app_cache.load_app(module_label, installed=True)
             if mod:
                 if module_label not in settings.INSTALLED_APPS:
                     settings.INSTALLED_APPS.append(module_label)
 
+    app_cache._populate()
     return state
 
 def teardown(state):
