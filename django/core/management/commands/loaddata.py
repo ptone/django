@@ -7,7 +7,7 @@ import zipfile
 from optparse import make_option
 import traceback
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core import serializers
 from django.core.management.base import BaseCommand, CommandError
@@ -92,7 +92,7 @@ class Command(BaseCommand):
             compression_types['bz2'] = bz2.BZ2File
 
         app_module_paths = []
-        for app in cache.get_models_modules():
+        for app in app_cache.get_models_modules():
             if hasattr(app, '__path__'):
                 # It's a 'models/' subpackage
                 for path in app.__path__:

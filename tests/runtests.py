@@ -60,6 +60,8 @@ def get_test_modules():
         (MODEL_TESTS_DIR_NAME, MODEL_TEST_DIR),
         (REGRESSION_TESTS_DIR_NAME, REGRESSION_TEST_DIR),
         (CONTRIB_DIR_NAME, CONTRIB_DIR),
+        # Note AppCache tests need to be last, because they mess too much with 
+        # test suite state
         (APPCACHE_TESTS_DIR_NAME, APPCACHE_TEST_DIR),):
         for f in os.listdir(dirpath):
             if (f.startswith('__init__') or
@@ -109,7 +111,7 @@ def setup(verbosity, test_labels):
 
     # This import statement is intentionally delayed until after we
     # access settings because of the USE_I18N dependency.
-    from django.apps import cache
+    from django.apps import app_cache
 
     # Load all the test model apps.
     test_labels_set = set([label.split('.')[0] for label in test_labels])
@@ -130,7 +132,7 @@ def setup(verbosity, test_labels):
         if not test_labels or module_name in test_labels_set:
             if verbosity >= 2:
                 print("Importing application %s" % module_name)
-            mod = cache.load_app(module_label)
+            mod = app_cache.load_app(module_label)
             if mod:
                 if module_label not in settings.INSTALLED_APPS:
                     settings.INSTALLED_APPS.append(module_label)
@@ -178,8 +180,8 @@ def bisect_tests(bisection_label, options, test_labels):
 
     if not test_labels:
         # Get the full list of test labels to use for bisection
-        from django.apps import cache
-        test_labels = [app.__name__.split('.')[-2] for app in cache.get_models_modules()]
+        from django.apps import app_cache
+        test_labels = [app.__name__.split('.')[-2] for app in app_cache.get_models_modules()]
 
     print('***** Bisecting test suite: %s' % ' '.join(test_labels))
 
@@ -239,8 +241,8 @@ def paired_tests(paired_test, options, test_labels):
     if not test_labels:
         print("")
         # Get the full list of test labels to use for bisection
-        from django.apps import cache
-        test_labels = [app.__name__.split('.')[-2] for app in cache.get_models_modules()]
+        from django.apps import app_cache
+        test_labels = [app.__name__.split('.')[-2] for app in app_cache.get_models_modules()]
 
     print('***** Trying paired execution')
 

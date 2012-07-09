@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 import sys
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.management import call_command
 from django.db.models.signals import post_syncdb
@@ -24,8 +24,8 @@ class ProxyModelInheritanceTests(TransactionTestCase):
     def setUp(self):
         self.old_sys_path = sys.path[:]
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-        cache.load_app('modeltests.proxy_model_inheritance.app1')
-        cache.load_app('modeltests.proxy_model_inheritance.app2')
+        app_cache.load_app('modeltests.proxy_model_inheritance.app1')
+        app_cache.load_app('modeltests.proxy_model_inheritance.app2')
 
     def tearDown(self):
         sys.path = self.old_sys_path

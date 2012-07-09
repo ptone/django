@@ -1,4 +1,4 @@
-from django.apps import cache
+from django.apps import app_cache
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import signals
 from django.utils.encoding import smart_unicode
@@ -8,9 +8,9 @@ def update_contenttypes(app, created_models, verbosity=2, **kwargs):
     Creates content types for models in the given app, removing any model
     entries that no longer have a matching model class.
     """
-    app_cls = cache.find_app_by_models_module(app)
+    app_cls = app_cache.find_app_by_models_module(app)
     ContentType.objects.clear_cache()
-    app_models = cache.get_models(app)
+    app_models = app_cache.get_models(app)
     if not app_models:
         return
     # They all have the same app_label, get the first one.
@@ -73,7 +73,7 @@ If you're unsure, answer 'no'.
                 print("Stale content types remain.")
 
 def update_all_contenttypes(verbosity=2, **kwargs):
-    for app in cache.get_models_modules():
+    for app in app_cache.get_models_modules():
         update_contenttypes(app, None, verbosity, **kwargs)
 
 signals.post_syncdb.connect(update_contenttypes)
