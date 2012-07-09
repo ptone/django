@@ -14,7 +14,7 @@ __all__ = (
 
 # These methods were always module level, so are kept that way for backwards
 # compatibility.
-get_apps = app_cache.get_apps
+get_apps = app_cache.get_models_modules
 get_app = app_cache.get_models_module
 get_app_errors = app_cache.get_app_errors
 get_models = app_cache.get_models
