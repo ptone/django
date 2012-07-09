@@ -4,7 +4,7 @@ Module for abstract serializer/unserializer base classes.
 
 from io import BytesIO
 
-from django.apps import cache
+from django.apps import app_cache
 from django.db import models
 from django.utils.encoding import smart_unicode
 from django.utils import six
@@ -132,7 +132,7 @@ class Deserializer(object):
         # hack to make sure that the models have all been loaded before
         # deserialization starts (otherwise subclass calls to get_model()
         # and friends might fail...)
-        cache._populate()
+        app_cache._populate()
 
     def __iter__(self):
         return self

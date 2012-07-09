@@ -4,7 +4,7 @@ import re
 from functools import partial
 from inspect import getargspec
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.template.context import (Context, RequestContext,
     ContextPopException)
@@ -1277,7 +1277,7 @@ def get_templatetags_modules():
         # Populate list once per process. Mutate the local list first, and
         # then assign it to the global name to ensure there are no cases where
         # two threads try to populate it simultaneously.
-        for app_module in ['django'] + [app._meta.name for app in cache.loaded_apps]:
+        for app_module in ['django'] + [app._meta.name for app in app_cache.loaded_apps]:
             try:
                 templatetag_module = '%s.templatetags' % app_module
                 import_module(templatetag_module)

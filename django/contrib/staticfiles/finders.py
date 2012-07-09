@@ -1,5 +1,5 @@
 import os
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.storage import default_storage, Storage, FileSystemStorage
@@ -119,7 +119,7 @@ class AppDirectoriesFinder(BaseFinder):
         self.apps = []
         # Mapping of app module paths to storage instances
         self.storages = SortedDict()
-        for app in cache.loaded_apps:
+        for app in app_cache.loaded_apps:
             app_storage = self.storage_class(app)
             if os.path.isdir(app_storage.location):
                 self.storages[app] = app_storage

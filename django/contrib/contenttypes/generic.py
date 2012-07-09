@@ -7,7 +7,7 @@ from collections import defaultdict
 from functools import partial
 from operator import attrgetter
 
-from django.apps import cache
+from django.apps import app_cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection
 from django.db.models import signals
@@ -54,7 +54,7 @@ class GenericForeignKey(object):
     def get_content_type(self, obj=None, id=None, using=None):
         # Convenience function using get_model avoids a circular import when
         # using this model
-        ContentType = cache.get_model("contenttypes", "contenttype")
+        ContentType = app_cache.get_model("contenttypes", "contenttype")
         if obj:
             return ContentType.objects.db_manager(obj._state.db).get_for_model(obj)
         elif id:
@@ -216,7 +216,7 @@ class GenericRelation(RelatedField, Field):
         """
         if negate:
             return []
-        ContentType = cache.get_model("contenttypes", "contenttype")
+        ContentType = app_cache.get_model("contenttypes", "contenttype")
         content_type = ContentType.objects.get_for_model(self.model)
         prefix = "__".join(pieces[:pos + 1])
         return [("%s__%s" % (prefix, self.content_type_field_name),

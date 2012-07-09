@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import gettext
 from os import path
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.test import TestCase
 from django.utils.translation import override, activate, get_language
@@ -92,12 +92,12 @@ class JsI18NTests(TestCase):
         with the proper English translations. See #13726 for more details.
         """
         extended_apps = list(settings.INSTALLED_APPS) + ['regressiontests.views.app0']
-        cache.load_app('regressiontests.views.app0')
+        app_cache.load_app('regressiontests.views.app0')
         with self.settings(LANGUAGE_CODE='fr', INSTALLED_APPS=extended_apps):
             with override('en-us'):
                 response = self.client.get('/views/jsi18n_english_translation/')
                 self.assertContains(response, javascript_quote('this app0 string is to be translated'))
-        cache.unload_app(app_label='app0')
+        app_cache.unload_app(app_label='app0')
 
     def testI18NLanguageNonEnglishFallback(self):
         """
@@ -124,14 +124,14 @@ class JsI18NTestsMultiPackage(TestCase):
         #3594 and #13514 for more details.
         """
         extended_apps = list(settings.INSTALLED_APPS) + ['regressiontests.views.app1', 'regressiontests.views.app2']
-        cache.load_app('regressiontests.views.app1')
-        cache.load_app('regressiontests.views.app2')
+        app_cache.load_app('regressiontests.views.app1')
+        app_cache.load_app('regressiontests.views.app2')
         with self.settings(LANGUAGE_CODE='en-us', INSTALLED_APPS=extended_apps):
             with override('fr'):
                 response = self.client.get('/views/jsi18n_multi_packages1/')
                 self.assertContains(response, javascript_quote('il faut traduire cette chaîne de caractères de app1'))
-        cache.unload_app(app_label='app1')
-        cache.unload_app(app_label='app2')
+        app_cache.unload_app(app_label='app1')
+        app_cache.unload_app(app_label='app2')
 
     def testI18NDifferentNonEnLangs(self):
         """
@@ -139,14 +139,14 @@ class JsI18NTestsMultiPackage(TestCase):
         English.
         """
         extended_apps = list(settings.INSTALLED_APPS) + ['regressiontests.views.app3', 'regressiontests.views.app4']
-        cache.load_app('regressiontests.views.app3')
-        cache.load_app('regressiontests.views.app4')
+        app_cache.load_app('regressiontests.views.app3')
+        app_cache.load_app('regressiontests.views.app4')
         with self.settings(LANGUAGE_CODE='fr', INSTALLED_APPS=extended_apps):
             with override('es-ar'):
                 response = self.client.get('/views/jsi18n_multi_packages2/')
                 self.assertContains(response, javascript_quote('este texto de app3 debe ser traducido'))
-        cache.unload_app(app_label='app3')
-        cache.unload_app(app_label='app4')
+        app_cache.unload_app(app_label='app3')
+        app_cache.unload_app(app_label='app4')
 
     def testI18NWithLocalePaths(self):
         extended_locale_paths = settings.LOCALE_PATHS + (
