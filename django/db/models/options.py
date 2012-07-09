@@ -39,6 +39,8 @@ class Options(object):
         self.abstract = False
         self.managed = True
         self.proxy = False
+        # the App instance that owns this model
+        self.app = None
         # For any class that is a proxy (including automatically created
         # classes for deferred object loading), proxy_for_model tells us
         # which class this model is proxying. Note that proxy_for_model
@@ -67,8 +69,6 @@ class Options(object):
         from django.db.backends.util import truncate_name
 
         cls._meta = self
-        # The AppCache sets this attribute to True for apps that are installed
-        self.installed = False
         # First, construct the default values for these options.
         self.object_name = cls.__name__
         self.module_name = self.object_name.lower()
@@ -519,3 +519,10 @@ class Options(object):
         Returns the index of the primary key field in the self.fields list.
         """
         return self.fields.index(self.pk)
+
+    @property
+    def installed(self):
+        # first test TODO will need setter with warning as well
+        if self.app:
+            return self.app._meta.installed
+        return False
