@@ -1,4 +1,15 @@
 from django.apps import app_cache
+
+# These have always been exposed through django.models, so are represented here
+# for backwards compatability.  They need to be defined early on in import, as
+# they are used by modules imported below
+get_apps = app_cache.get_models_modules
+get_app = app_cache.get_models_module
+get_app_errors = app_cache.get_app_errors
+get_models = app_cache.get_models
+get_model = app_cache.get_model
+register_models = app_cache.register_models
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
 from django.db import connection
@@ -18,14 +29,6 @@ from django.utils.decorators import wraps
 # Admin stages.
 ADD, CHANGE, BOTH = 1, 2, 3
 
-# These have always been exposed through django.models, so are represented here
-# for backwards compatability
-get_apps = app_cache.get_models_modules
-get_app = app_cache.get_models_module
-get_app_errors = app_cache.get_app_errors
-get_models = app_cache.get_models
-get_model = app_cache.get_model
-register_models = app_cache.register_models
 
 def permalink(func):
     """
