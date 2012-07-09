@@ -66,7 +66,7 @@ class App(object):
         cls_name = module_name_re.sub(upper, name.split('.')[-1])
         return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': name})
 
-    def add_parent_models(self, installed=False):
+    def register_models(self, installed=False):
         from django.apps import app_cache
         parents = [p for p in self.__class__.mro()
                     if hasattr(p, '_meta')]
@@ -75,5 +75,6 @@ class App(object):
             # update app_label and installed attribute of parent models
             for model in parent_models.itervalues():
                 model._meta.app_label = self._meta.label
-                model._meta.installed = installed
+                model._meta.app = self
+                # model._meta.installed = installed
             self._meta.models.update(parent_models)
