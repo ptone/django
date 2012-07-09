@@ -39,7 +39,7 @@ class Options(object):
         self.managed = True
         self.proxy = False
         # the App instance that owns this model
-        self.app = App(app_label)
+        self.app = App(label=app_label)
         # For any class that is a proxy (including automatically created
         # classes for deferred object loading), proxy_for_model tells us
         # which class this model is proxying. Note that proxy_for_model
