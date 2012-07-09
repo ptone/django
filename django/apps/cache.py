@@ -1,6 +1,6 @@
+import imp
 import sys
 import os
-import threading
 import warnings
 
 from django.conf import settings
@@ -41,7 +41,7 @@ class AppCache(object):
     """
     # Use the Borg pattern to share state between all instances. Details at
     # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/66531.
-    __shared_state = dict(_initialize(), write_lock=threading.RLock())
+    __shared_state = dict(_initialize())
 
     def __init__(self):
         self.__dict__ = self.__shared_state
@@ -59,7 +59,7 @@ class AppCache(object):
                     print module
                     del sys.modules[module]
         self.__dict__ = self.__class__.__shared_state = dict(
-                _initialize(), write_lock=threading.RLock())
+                _initialize())
 
     def _reload(self):
         """
@@ -76,7 +76,14 @@ class AppCache(object):
         """
         if self.loaded:
             return
-        with self.write_lock:
+        # Note that we want to use the import lock here - the app loading is
+        # in many cases initiated implicitly by importing, and thus it is
+        # possible to end up in deadlock when one thread initiates loading
+        # without holding the importer lock and another thread then tries to
+        # import something which also launches the app loading. For details of
+        # this situation see #18251.
+        imp.acquire_lock()
+        try:
             if self.loaded:
                 return
             for app_name in settings.INSTALLED_APPS:
@@ -105,6 +112,8 @@ class AppCache(object):
                 self.loaded = True
                 # send the post_apps_loaded signal
                 post_apps_loaded.send(sender=self, apps=self.loaded_apps)
+        finally:
+            imp.release_lock()
 
     def get_app_class(self, app_name):
         """
