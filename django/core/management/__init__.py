@@ -5,7 +5,7 @@ from optparse import OptionParser, NO_DEFAULT
 import imp
 import warnings
 
-from django.apps import cache
+from django.apps import app_cache
 from django.core.management.base import BaseCommand, CommandError, handle_default_options
 from django.core.management.color import color_style
 from django.utils.importlib import import_module
@@ -104,9 +104,9 @@ def get_commands():
 
         # Find the installed apps
         try:
-            from django.apps import cache
-            cache._populate()
-            apps = cache.loaded_apps
+            from django.apps import app_cache
+            app_cache._populate()
+            apps = app_cache.loaded_apps
         except (AttributeError, EnvironmentError, ImportError):
             apps = []
 
@@ -323,7 +323,7 @@ class ManagementUtility(object):
                 try:
                     from django.conf import settings
                     # Get the last part of the dotted path as the app name.
-                    options += [(app._meta.label, 0) for app in cache.loaded_apps]
+                    options += [(app._meta.label, 0) for app in app_cache.loaded_apps]
                 except ImportError:
                     # Fail silently if DJANGO_SETTINGS_MODULE isn't set. The
                     # user will find out once they execute the command.
@@ -441,8 +441,8 @@ def setup_environ(settings_mod, original_settings_path=None):
     sys.path.pop()
 
     # Initialize the appcache and look for errors
-    from django.apps import cache
-    for (app_name, error) in cache.get_app_errors().items():
+    from django.apps import app_cache
+    for (app_name, error) in app_cache.get_app_errors().items():
         sys.stderr.write("%s: %s" % (app_name, error))
         sys.exit(1)
 

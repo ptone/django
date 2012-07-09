@@ -1,6 +1,6 @@
 import sys
 
-from django.apps import cache
+from django.apps import app_cache
 from django.core.management.color import color_style
 from django.utils.encoding import smart_str
 from django.utils.itercompat import is_iterable
@@ -28,10 +28,10 @@ def get_validation_errors(outfile, app=None):
 
     e = ModelErrorCollection(outfile)
 
-    for (app_name, error) in cache.get_app_errors().items():
+    for (app_name, error) in app_cache.get_app_errors().items():
         e.add(app_name, error)
 
-    for cls in cache.get_models(app):
+    for cls in app_cache.get_models(app):
         opts = cls._meta
 
         # Do field-specific validation.

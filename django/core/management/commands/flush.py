@@ -1,6 +1,6 @@
 from optparse import make_option
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.db import connections, router, transaction, models, DEFAULT_DB_ALIAS
 from django.core.management import call_command
@@ -38,7 +38,7 @@ class Command(NoArgsCommand):
 
         # Import the 'management' module within each installed app, to register
         # dispatcher events.
-        for app in cache.loaded_apps:
+        for app in app_cache.loaded_apps:
             try:
                 import_module('%s.management' % app._meta.name)
             except ImportError:
@@ -75,7 +75,7 @@ The full error: %s""" % (connection.settings_dict['NAME'], e))
             # applications to respond as if the database had been
             # sync'd from scratch.
             all_models = []
-            for app in cache.get_models_modules():
+            for app in app_cache.get_models_modules():
                 all_models.extend([
                     m for m in models.get_models(app, include_auto_created=True)
                     if router.allow_syncdb(db, m)

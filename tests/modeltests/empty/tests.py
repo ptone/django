@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
@@ -31,7 +31,7 @@ class NoModelTests(TestCase):
     It seemed like an appropriate home for it.
     """
     def setUp(self):
-        cache.load_app("modeltests.empty.no_models")
+        app_cache.load_app("modeltests.empty.no_models")
 
     def tearDown(self):
         # TODO a cache.unload_app would be perhaps good to have?
@@ -40,8 +40,8 @@ class NoModelTests(TestCase):
     def test_no_models(self):
         with self.assertRaisesRegexp(ImproperlyConfigured,
                     'App with label no_models could not be found.'):
-            cache.get_models_module('no_models')
+            app_cache.get_models_module('no_models')
 
     def test_no_models_emptyOK(self):
-        self.assertEquals(cache.get_models_module('no_models', emptyOK=True), None)
+        self.assertEquals(app_cache.get_models_module('no_models', emptyOK=True), None)
 

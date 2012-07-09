@@ -1,6 +1,6 @@
 import sys
 
-from django.apps import cache
+from django.apps import app_cache
 from django.core.management.validation import get_validation_errors
 from django.db.models.signals import post_syncdb
 from django.utils import unittest
@@ -15,7 +15,7 @@ class InvalidModelTestCase(unittest.TestCase):
         # Make sure sys.stdout is not a tty so that we get errors without
         # coloring attached (makes matching the results easier). We restore
         # sys.stderr afterwards.
-        cache.load_app("modeltests.invalid_models.invalid_models_app")
+        app_cache.load_app("modeltests.invalid_models.invalid_models_app")
         self.old_stdout = sys.stdout
         self.stdout = StringIO()
         sys.stdout = self.stdout
@@ -25,10 +25,10 @@ class InvalidModelTestCase(unittest.TestCase):
     def tearDown(self):
         sys.stdout = self.old_stdout
         # post_syncdb.receivers = self.sync_receivers
-        cache.unload_app(app_label="invalid_models_app")
+        app_cache.unload_app(app_label="invalid_models_app")
 
     def test_invalid_models(self):
-        module = cache.get_models_module('invalid_models_app')
+        module = app_cache.get_models_module('invalid_models_app')
         count = get_validation_errors(self.stdout, module)
         self.stdout.seek(0)
         error_log = self.stdout.read()

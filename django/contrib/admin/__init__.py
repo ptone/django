@@ -1,6 +1,6 @@
 # ACTION_CHECKBOX_NAME is unused, but should stay since its import from here
 # has been referenced in documentation.
-from django.apps import cache
+from django.apps import app_cache
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.admin.options import ModelAdmin, HORIZONTAL, VERTICAL
 from django.contrib.admin.options import StackedInline, TabularInline
@@ -21,7 +21,7 @@ def autodiscover():
     from django.utils.importlib import import_module
     from django.utils.module_loading import module_has_submodule
 
-    for app in cache.loaded_apps:
+    for app in app_cache.loaded_apps:
         # Attempt to import the app's admin module.
         try:
             before_import_registry = copy.copy(site._registry)

@@ -5,7 +5,7 @@ Note: This test requires setuptools!
 """
 
 from django.conf import settings
-from django.apps import cache
+from django.apps import app_cache
 
 if __name__ == '__main__':
     settings.configure()
@@ -71,26 +71,26 @@ class EggLoaderTest(unittest.TestCase):
             os.path.normcase('templates/y.html') : StringIO("y"),
             os.path.normcase('templates/x.txt') : StringIO("x"),
         })
-        self.old_loaded_apps = cache.loaded_apps
+        self.old_loaded_apps = app_cache.loaded_apps
 
     def tearDown(self):
-        cache.loaded_apps = self.old_loaded_apps
+        app_cache.loaded_apps = self.old_loaded_apps
 
     def test_empty(self):
         "Loading any template on an empty egg should fail"
-        cache.loaded_apps = [MockedApp('egg_empty')]
+        app_cache.loaded_apps = [MockedApp('egg_empty')]
         egg_loader = EggLoader()
         self.assertRaises(TemplateDoesNotExist, egg_loader.load_template_source, "not-existing.html")
 
     def test_non_existing(self):
         "Template loading fails if the template is not in the egg"
-        cache.loaded_apps = [MockedApp('egg_1')]
+        app_cache.loaded_apps = [MockedApp('egg_1')]
         egg_loader = EggLoader()
         self.assertRaises(TemplateDoesNotExist, egg_loader.load_template_source, "not-existing.html")
 
     def test_existing(self):
         "A template can be loaded from an egg"
-        cache.loaded_apps = [MockedApp('egg_1')]
+        app_cache.loaded_apps = [MockedApp('egg_1')]
         egg_loader = EggLoader()
         contents, template_name = egg_loader.load_template_source("y.html")
         self.assertEqual(contents, "y")
@@ -98,7 +98,7 @@ class EggLoaderTest(unittest.TestCase):
 
     def test_not_installed(self):
         "Loading an existent template from an egg not included in loaded_apps should fail"
-        cache.loaded_apps = []
+        app_cache.loaded_apps = []
         egg_loader = EggLoader()
         self.assertRaises(TemplateDoesNotExist, egg_loader.load_template_source, "y.html")
 

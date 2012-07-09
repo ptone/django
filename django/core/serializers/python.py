@@ -5,7 +5,7 @@ other serializers.
 """
 from __future__ import unicode_literals
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.serializers import base
 from django.db import models, DEFAULT_DB_ALIAS
@@ -81,7 +81,7 @@ def Deserializer(object_list, **options):
     stream or a string) to the constructor
     """
     db = options.pop('using', DEFAULT_DB_ALIAS)
-    cache._populate()
+    app_cache._populate()
     for d in object_list:
         # Look up the model and starting build a dict of data for it.
         Model = _get_model(d["model"])

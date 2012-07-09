@@ -6,7 +6,7 @@ packages.
 import os
 import sys
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.template.base import TemplateDoesNotExist
@@ -19,7 +19,7 @@ from django.utils import six
 if not six.PY3:
     fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
 app_template_dirs = []
-for app in cache.loaded_apps:
+for app in app_cache.loaded_apps:
     template_dir = os.path.join(app._meta.path, 'templates')
     if os.path.isdir(template_dir):
         if not six.PY3:

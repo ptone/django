@@ -2,8 +2,8 @@
 Module for abstract serializer/unserializer base classes.
 """
 
+from django.apps import app_cache
 from django.db import models
-from django.utils.encoding import smart_text
 from django.utils import six
 
 class SerializerDoesNotExist(KeyError):
@@ -129,7 +129,7 @@ class Deserializer(object):
         # hack to make sure that the models have all been loaded before
         # deserialization starts (otherwise subclass calls to get_model()
         # and friends might fail...)
-        cache._populate()
+        app_cache._populate()
 
     def __iter__(self):
         return self

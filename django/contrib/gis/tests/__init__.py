@@ -50,7 +50,7 @@ def geodjango_suite(apps=True):
     Returns a TestSuite consisting only of GeoDjango tests that can be run.
     """
     import sys
-    from django.apps import cache
+    from django.apps import app_cache
 
     suite = unittest.TestSuite()
 
@@ -76,7 +76,7 @@ def geodjango_suite(apps=True):
     # Finally, adding the suites for each of the GeoDjango test apps.
     if apps:
         for app_name in geo_apps(namespace=False):
-            suite.addTest(build_suite(cache.get_models_module(app_name)))
+            suite.addTest(build_suite(app_cache.get_models_module(app_name)))
 
     return suite
 

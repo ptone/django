@@ -1,4 +1,4 @@
-from django.apps import cache
+from django.apps import app_cache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError
 from django.core import serializers
@@ -50,20 +50,20 @@ class Command(BaseCommand):
                 excluded_models.add(model_obj)
             else:
                 try:
-                    app_obj = cache.get_models_module(exclude)
+                    app_obj = app_cache.get_models_module(exclude)
                     excluded_apps.add(app_obj)
                 except ImproperlyConfigured:
                     raise CommandError('Unknown app in excludes: %s' % exclude)
 
         if len(app_labels) == 0:
-            app_list = SortedDict((app, None) for app in cache.get_models_modules() if app not in excluded_apps)
+            app_list = SortedDict((app, None) for app in app_cache.get_models_modules() if app not in excluded_apps)
         else:
             app_list = SortedDict()
             for label in app_labels:
                 try:
                     app_label, model_label = label.split('.')
                     try:
-                        app = cache.get_models_module(app_label)
+                        app = app_cache.get_models_module(app_label)
                     except ImproperlyConfigured:
                         raise CommandError("Unknown application: %s" % app_label)
                     if app in excluded_apps:
@@ -81,7 +81,7 @@ class Command(BaseCommand):
                     # This is just an app - no model qualifier
                     app_label = label
                     try:
-                        app = cache.get_models_module(app_label)
+                        app = app_cache.get_models_module(app_label)
                     except ImproperlyConfigured:
                         raise CommandError("Unknown application: %s" % app_label)
                     if app in excluded_apps:

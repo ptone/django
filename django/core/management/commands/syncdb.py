@@ -1,7 +1,7 @@
 from optparse import make_option
 import traceback
 
-from django.apps import cache
+from django.apps import app_cache
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import NoArgsCommand
@@ -35,7 +35,7 @@ class Command(NoArgsCommand):
 
         # Import the 'management' module within each installed app, to register
         # dispatcher events.
-        for app in cache.loaded_apps:
+        for app in app_cache.loaded_apps:
             try:
                 import_module('.management', app._meta.name)
             except ImportError, exc:
@@ -68,7 +68,7 @@ class Command(NoArgsCommand):
                 [m for m in models.get_models(app._meta.models_module,
                                               include_auto_created=True)
                 if app._meta.models_module and router.allow_syncdb(db, m)])
-            for app in cache.loaded_apps
+            for app in app_cache.loaded_apps
         ]
         def model_installed(model):
             opts = model._meta
