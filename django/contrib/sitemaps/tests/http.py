@@ -18,9 +18,6 @@ from .base import SitemapTestsBase
 
 class HTTPSitemapTests(SitemapTestsBase):
 
-    def tearDown(self):
-        Site._meta.app._meta.installed = True
-
     def test_simple_sitemap_index(self):
         "A simple sitemap index can be rendered"
         response = self.client.get('/simple/index.xml')
