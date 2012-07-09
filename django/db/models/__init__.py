@@ -1,10 +1,7 @@
+from django.apps import app_cache
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
 from django.db import connection
-
-# these import are left here to trigger deprecation call currently invoked from loading.py
-from django.db.models.loading import get_apps, get_app, get_models, get_model, register_models
-
 from django.db.models.query import Q
 from django.db.models.expressions import F
 from django.db.models.manager import Manager
@@ -20,6 +17,15 @@ from django.utils.decorators import wraps
 
 # Admin stages.
 ADD, CHANGE, BOTH = 1, 2, 3
+
+# These have always been exposed through django.models, so are represented here
+# for backwards compatability
+get_apps = app_cache.get_models_modules
+get_app = app_cache.get_models_module
+get_app_errors = app_cache.get_app_errors
+get_models = app_cache.get_models
+get_model = app_cache.get_model
+register_models = app_cache.register_models
 
 def permalink(func):
     """
