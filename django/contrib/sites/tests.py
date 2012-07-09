@@ -12,10 +12,10 @@ class SitesFrameworkTests(TestCase):
     def setUp(self):
         Site(id=settings.SITE_ID, domain="example.com", name="example.com").save()
         self.old_Site_meta_installed = Site._meta.installed
-        Site._meta.installed = True
+        Site._meta.app._meta.installed = True
 
     def tearDown(self):
-        Site._meta.installed = self.old_Site_meta_installed
+        Site._meta.app._meta.installed = self.old_Site_meta_installed
 
     def test_save_another(self):
         # Regression for #17415
@@ -58,7 +58,7 @@ class SitesFrameworkTests(TestCase):
         self.assertRaises(ObjectDoesNotExist, get_current_site, request)
 
         # A RequestSite is returned if the sites framework is not installed
-        Site._meta.installed = False
+        Site._meta.app._meta.installed = False
         site = get_current_site(request)
         self.assertTrue(isinstance(site, RequestSite))
         self.assertEqual(site.name, "example.com")

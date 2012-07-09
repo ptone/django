@@ -14,14 +14,21 @@ class AppOptions(object):
         self.meta = meta
         self.errors = []
         self.models = SortedDict()
+        self.installed = False
 
     def contribute_to_class(self, cls, name):
         cls._meta = self
         # get the name from the path e.g. "auth" for "django.contrib.auth"
         self.label = self.name.split('.')[-1]
         self.models_module = None
-        self.module = import_module(self.name)
-        self.path = os.path.dirname(self.module.__file__)
+        self.naive = False
+        try:
+            self.module = import_module(self.name)
+            self.path = os.path.dirname(self.module.__file__)
+        except ImportError:
+            self.module = None
+            self.path = ''
+            self.naive = True
         defaults = {
             'db_prefix': self.label,
             'models_path': '%s.models' % self.name,

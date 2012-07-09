@@ -15,7 +15,8 @@ class InvalidModelTestCase(unittest.TestCase):
         # Make sure sys.stdout is not a tty so that we get errors without
         # coloring attached (makes matching the results easier). We restore
         # sys.stderr afterwards.
-        app_cache.load_app("modeltests.invalid_models.invalid_models_app")
+        app_cache.load_app("modeltests.invalid_models.invalid_models_app",
+                installed=True)
         self.old_stdout = sys.stdout
         self.stdout = StringIO()
         sys.stdout = self.stdout
