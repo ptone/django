@@ -24,7 +24,6 @@ def _initialize():
 
         # -- Everything below here is only used when populating the cache --
         'loaded': False,
-        'handled': [],
         'postponed': [],
         'nesting_level': 0,
         '_get_models_cache': {},
@@ -47,13 +46,9 @@ class AppCache(object):
         """
         Resets the cache to its initial (unseeded) state
         """
-        # remove imported model modules, so ModelBase.__new__ can register
-        # them with the cache again
-        # for app, models in self.app_models.iteritems():
-            # for model in models.itervalues():
-                # module = model.__module__
-                # if module in sys.modules:
-                    # del sys.modules[module]
+        for app in self.loaded_apps:
+            self._unload_app(app)
+
         self.__dict__ = self.__class__.__shared_state = dict(
                 _initialize())
 
@@ -87,8 +82,6 @@ class AppCache(object):
                     app_name, app_kwargs = app_name
                 else:
                     app_kwargs = {}
-                # if app_name in self.handled:
-                    # continue
                 self.load_app(app_name, app_kwargs, can_postpone=True,
                         installed=True)
             if not self.nesting_level:
@@ -164,17 +157,16 @@ class AppCache(object):
         if app_kwargs is None:
             app_kwargs = {}
 
-        self.handled.append(app_name)
         self.nesting_level += 1
 
         # check if an app instance with app_name already exists, if not
         # then create one
         app = self.get_app_instance(app_name=app_name)
-        naive_app = None
         if app and app._meta.naive:
             # a naive app was created by model imports
-            # remove at the end of load app after moving models
-            naive_app = app
+            # it will be removed when models are registered with app
+            # at the end of the _populate function
+            # reset app to None so a full app instance is created
             app = None
         if not app:
             app_class = self.get_app_class(app_name)
@@ -183,14 +175,15 @@ class AppCache(object):
             # Send the signal that the app has been loaded
             app_loaded.send(sender=app_class, app=app)
         else:
+            # an existing app was found
             self.nesting_level -= 1
             app._meta.installed = installed
             return app._meta.models
 
         # import the app's models module and handle ImportErrors
         try:
-            # this will register any models not yet registered - but should be
-            # already loaded in app instantiation
+            # this will register any models not yet registered
+            # in theorey these should already be loaded during app instantiation
             models = import_module(app._meta.models_path)
         except ImportError:
             self.nesting_level -= 1
@@ -219,6 +212,10 @@ class AppCache(object):
         return models
 
     def _unload_app(self, app):
+        for model in app._meta.models.itervalues():
+            module = model.__module__
+            if module in sys.modules:
+                del sys.modules[module]
         self.loaded_apps.remove(app)
         # try:
             # del(self.app_models[app._meta.label])
@@ -377,7 +374,6 @@ class AppCache(object):
         """
         Register a set of models as belonging to an app.
         """
-        # print 'registering models for %s: %s' % (app_label, models)
         app = self.get_app_instance(app_label)
         if not app:
             app = App.from_label(app_label)() #(label=app_label)
