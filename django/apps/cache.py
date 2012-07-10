@@ -161,7 +161,7 @@ class AppCache(object):
 
         # check if an app instance with app_name already exists, if not
         # then create one
-        app = self.get_app_instance(app_name=app_name)
+        app = self.get_app_instance(app_name.split('.')[-1])
         if app and app._meta.naive:
             # a naive app was created by model imports
             # it will be removed when models are registered with app
