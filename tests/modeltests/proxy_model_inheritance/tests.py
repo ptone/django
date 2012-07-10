@@ -10,7 +10,7 @@ from django.db.models.signals import post_syncdb
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import override_settings
 
-from .models import (ConcreteModel, ConcreteModelSubclass,
+from modeltests.proxy_model_inheritance.models import (ConcreteModel, ConcreteModelSubclass,
     ConcreteModelSubclassProxy)
 
 
