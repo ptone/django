@@ -98,8 +98,9 @@ class AppCache(object):
                     app.register_models(installed=True)
                 # check if there is more than one app with the same
                 # db_prefix attribute
-                for app1 in self.loaded_apps:
-                    for app2 in self.loaded_apps:
+                models_apps = [app for app in self.loaded_apps if len(app._meta.models)]
+                for app1 in models_apps:
+                    for app2 in models_apps:
                         if (app1 != app2 and
                                 app1._meta.db_prefix == app2._meta.db_prefix):
                             raise ImproperlyConfigured(
