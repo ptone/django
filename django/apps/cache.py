@@ -182,6 +182,7 @@ class AppCache(object):
             # Send the signal that the app has been loaded
             app_loaded.send(sender=app_class, app=app)
         else:
+            self.nesting_level -= 1
             app._meta.installed = installed
             return app._meta.models
 
