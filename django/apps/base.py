@@ -66,15 +66,35 @@ class App(object):
         cls_name = module_name_re.sub(upper, name.split('.')[-1])
         return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': name})
 
+    @classmethod
+    def from_label(cls, label):
+        label = str(label)
+        upper = lambda match: match.group(1).upper()
+        cls_name = module_name_re.sub(upper, label)
+        return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': label})
+
     def register_models(self, installed=False):
         from django.apps import app_cache
+        # make sure models registered at import time are assigned to the app
+        same_label_apps = [app for app in app_cache.loaded_apps if app._meta.label == self._meta.label]
+        for app in same_label_apps:
+            if app._meta.naive and app != self:
+                self._meta.models.update(app._meta.models)
+                k = app._meta.models.keys()[0]
+                app_cache.loaded_apps.remove(app)
+
+        for model in self._meta.models.itervalues():
+            # update the models reference to the app it is associated with
+            model._meta.app = self
+
         parents = [p for p in self.__class__.mro()
                     if hasattr(p, '_meta')]
         for parent in reversed(parents):
-            parent_models = app_cache.app_models.get(parent._meta.label, {})
+            parent_models = parent._meta.models
             # update app_label and installed attribute of parent models
             for model in parent_models.itervalues():
                 model._meta.app_label = self._meta.label
                 model._meta.app = self
                 # model._meta.installed = installed
             self._meta.models.update(parent_models)
+        app_cache._get_models_cache.clear()
