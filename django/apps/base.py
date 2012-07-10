@@ -73,7 +73,7 @@ class App(object):
         cls_name = module_name_re.sub(upper, label)
         return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': label})
 
-    def register_models(self, installed=False):
+    def register_models(self):
         from django.apps import app_cache
         # make sure models registered at import time are assigned to the app
         same_label_apps = [app for app in app_cache.loaded_apps if app._meta.label == self._meta.label]
@@ -90,11 +90,12 @@ class App(object):
         parents = [p for p in self.__class__.mro()
                     if hasattr(p, '_meta')]
         for parent in reversed(parents):
+            parent._meta.installed = self._meta.installed
             parent_models = parent._meta.models
-            # update app_label and installed attribute of parent models
             for model in parent_models.itervalues():
-                model._meta.app_label = self._meta.label
-                model._meta.app = self
-                # model._meta.installed = installed
+                pass
+                # TODO what really should these parents be set to here?
+                # model._meta.app_label = self._meta.label
+                # model._meta.app = self
             self._meta.models.update(parent_models)
         app_cache._get_models_cache.clear()

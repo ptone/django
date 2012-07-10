@@ -95,7 +95,7 @@ class AppCache(object):
                 for app_name, app_kwargs in self.postponed:
                     self.load_app(app_name, app_kwargs, installed=True)
                 for app in self.loaded_apps:
-                    app.register_models(installed=True)
+                    app.register_models()
                 # check if there is more than one app with the same
                 # db_prefix attribute
                 models_apps = [app for app in self.loaded_apps if len(app._meta.models)]
@@ -215,7 +215,7 @@ class AppCache(object):
         self.nesting_level -= 1
         app._meta.models_module = models
         app._meta.installed = installed
-        app.register_models(installed=installed)
+        app.register_models()
         return models
 
     def _unload_app(self, app):
