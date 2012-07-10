@@ -168,7 +168,7 @@ class AppCache(object):
 
         # check if an app instance with app_name already exists, if not
         # then create one
-        app = self.get_app_instance(app_name.split('.')[-1])
+        app = self.get_app_instance(app_name=app_name)
         naive_app = None
         if app and app._meta.naive:
             # a naive app was created by model imports
@@ -236,13 +236,19 @@ class AppCache(object):
             self._unload_app(app)
 
 
-    def get_app_instance(self, app_label):
+    def get_app_instance(self, app_label=None, app_name=None):
         """
         Returns the app instance that matches the given label.
         """
-        for app in self.loaded_apps:
-            if app._meta.label == app_label:
-                return app
+        if app_label:
+            for app in self.loaded_apps:
+                if app._meta.label == app_label:
+                    return app
+        elif app_name:
+            for app in self.loaded_apps:
+                if app._meta.name == app_name:
+                    return app
+        return None
 
     def find_app_by_models_module(self, models_module):
         """
