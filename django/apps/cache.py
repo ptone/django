@@ -380,6 +380,8 @@ class AppCache(object):
             self.loaded_apps.append(app)
             app._meta.naive = True
         for model in models:
+            if app._meta.models_module is None:
+                app._meta.models_module = model.__module__
             model_name = model._meta.object_name.lower()
             app._meta.models[model_name] = model
             # model_dict = self.app_models.setdefault(app_label, SortedDict())
