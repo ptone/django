@@ -190,7 +190,6 @@ class AppCache(object):
         try:
             # this will register any models not yet registered - but should be
             # already loaded in app instantiation
-            # print 'importing models module for %s' % app_name
             models = import_module(app._meta.models_path)
         except ImportError:
             self.nesting_level -= 1
@@ -214,7 +213,6 @@ class AppCache(object):
 
         self.nesting_level -= 1
         app._meta.models_module = models
-        # print 'setting installed to %s' % installed
         app._meta.installed = installed
         app.register_models(installed=installed)
         return models
@@ -328,14 +326,6 @@ class AppCache(object):
         """
         cache_key = (app_mod, include_auto_created, include_deferred,
                      only_installed)
-        # print '-----------------'
-        # print 'get models for:'
-        # print app_mod
-        # print 'only_installed = %s' % only_installed
-        # if cache_key in self._get_models_cache:
-            # print 'cached'
-            # print self._get_models_cache[cache_key]
-            # print '^^^^^^^ end get_models  ^^^^^^^^^^^'
         try:
             return self._get_models_cache[cache_key]
         except KeyError:
@@ -352,7 +342,6 @@ class AppCache(object):
         model_list = []
         if only_installed:
             app_list = [app for app in app_list if app._meta.installed]
-        # print 'app list: %s' % app_list
         for app in app_list:
             model_list.extend(
                 model for model in app._meta.models.values()
@@ -360,7 +349,6 @@ class AppCache(object):
                     (not model._meta.auto_created or include_auto_created))
             )
         self._get_models_cache[cache_key] = model_list
-        # print '^^^^^^^ end get_models  ^^^^^^^^^^^'
         return model_list
 
     def get_model(self, app_label, model_name,
