@@ -209,7 +209,6 @@ class AppCache(object):
 
         self.nesting_level -= 1
         app._meta.models_module = models
-        app.register_models()
         return models
 
     def _unload_app(self, app):
