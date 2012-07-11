@@ -52,8 +52,12 @@ class ModelBase(type):
         if getattr(meta, 'app_label', None) is None:
             # Figure out the app_label by looking one level up.
             # For 'django.contrib.sites.models', this would be 'sites'.
-            model_module = sys.modules[new_class.__module__]
-            kwargs = {"app_label": model_module.__name__.split('.')[-2]}
+            # if there is a models package - continue looking one more level up
+            model_module_name = sys.modules[new_class.__module__].__name__
+            app_label = model_module_name.split('.')[-2]
+            if app_label == 'models':
+                app_label = model_module_name.split('.')[-3]
+            kwargs = {"app_label": app_label}
         else:
             kwargs = {}
 
