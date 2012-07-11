@@ -10,7 +10,7 @@ from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 
 from django.apps.base import App
-from django.apps.signals import app_loaded, post_apps_loaded
+from django.apps.signals import app_loaded, post_apps_loaded, pre_apps_loaded
 
 
 def _initialize():
@@ -77,6 +77,7 @@ class AppCache(object):
         try:
             if self.loaded:
                 return
+            pre_apps_loaded.send(sender=self)
             for app_name in settings.INSTALLED_APPS:
                 if isinstance(app_name, (tuple, list)):
                     app_name, app_kwargs = app_name
