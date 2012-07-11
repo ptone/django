@@ -23,6 +23,8 @@ register_models = app_cache.register_models
 load_app = app_cache.load_app
 app_cache_ready = app_cache.ready
 
+cache = app_cache
+
 warnings.warn(
     'The utilities in django.db.models.loading have been moved to '
     'django.apps.cache. Please update your code accordingly.',
