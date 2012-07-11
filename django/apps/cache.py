@@ -180,6 +180,11 @@ class AppCache(object):
         else:
             # an existing app was found
             self.nesting_level -= 1
+            if app._meta.name != app_name:
+                raise ImproperlyConfigured(
+                        'Multiple apps with the label %s can not be loaded' %
+                        app._meta.label)
+
             app._meta.installed = installed
             return app._meta.models
 
