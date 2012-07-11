@@ -213,6 +213,11 @@ class AppCache(object):
 
         self.nesting_level -= 1
         app._meta.models_module = models
+        # we need to call this after each loaded app - to remove any
+        # naive apps from self.loaded_apps, or it will be possible to have
+        # multiple non-naive apps loaded because get_app_instance will
+        # continue to return the naive version
+        app.register_models()
         return models
 
     def _unload_app(self, app):
