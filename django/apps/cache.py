@@ -89,6 +89,9 @@ class AppCache(object):
                     self.load_app(app_name, app_kwargs, installed=True)
                 for app in self.loaded_apps:
                     app.register_models()
+                    if getattr(app, 'post_load', None) and hasattr(
+                            app.post_load, '__call__'):
+                        app.post_load()
                 # check if there is more than one app with the same
                 # db_prefix attribute
                 models_apps = [app for app in self.loaded_apps if len(app._meta.models)]
