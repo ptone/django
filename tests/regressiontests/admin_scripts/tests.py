@@ -1021,13 +1021,12 @@ class ManageValidate(AdminScriptTestCase):
     def test_broken_app(self):
         "manage.py validate reports an ImportError if an app's models.py raises one on import"
         self.write_settings('settings.py', apps=['admin_scripts.broken_app'])
-        return
         from django.apps import app_cache
-        app_cache.load_app('regressiontests.admin_scripts.broken_app', installed=True)
-        args = ['validate']
-        out, err = self.run_manage(args)
-        self.assertNoOutput(out)
-        self.assertOutput(err, 'ImportError')
+        # the import error now happens at the time the app is loaded
+        # because the test_suite dynamically loads this app there is no
+        # chance for the admin script call to run
+        self.assertRaises(ImportError, app_cache.load_app,
+                'regressiontests.admin_scripts.broken_app', installed=True)
 
     def test_complex_app(self):
         "manage.py validate does not raise an ImportError validating a complex app with nested calls to load_app"
