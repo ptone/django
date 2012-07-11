@@ -80,7 +80,6 @@ class App(object):
         for app in same_label_apps:
             if app._meta.naive and app != self:
                 self._meta.models.update(app._meta.models)
-                k = app._meta.models.keys()[0]
                 app_cache.loaded_apps.remove(app)
 
         for model in self._meta.models.itervalues():
