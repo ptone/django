@@ -86,6 +86,14 @@ class App(object):
         for model in self._meta.models.itervalues():
             # update the models reference to the app it is associated with
             model._meta.app = self
+            # update the db_table of the model if set by the app
+            if (self._meta.label != self._meta.db_prefix and
+                    model._meta.db_table.startswith(self._meta.label)):
+                # this should be safe as it should always have been called
+                # early on before any syncdb
+                model._meta.db_table = model._meta.db_table.replace(
+                        self._meta.label,
+                        self._meta.db_prefix)
 
         parents = [p for p in self.__class__.mro()
                     if hasattr(p, '_meta')]
