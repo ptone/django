@@ -1,7 +1,7 @@
 import re
 from bisect import bisect
 
-from django.apps import app_cache, App
+from django.apps import app_cache
 from django.conf import settings
 from django.db.models.related import RelatedObject
 from django.db.models.fields.related import ManyToManyRel
@@ -39,7 +39,7 @@ class Options(object):
         self.managed = True
         self.proxy = False
         # the App instance that owns this model
-        self.app = App(label=app_label)
+        self.app = None
         # For any class that is a proxy (including automatically created
         # classes for deferred object loading), proxy_for_model tells us
         # which class this model is proxying. Note that proxy_for_model
