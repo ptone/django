@@ -180,6 +180,8 @@ class AppCache(object):
             app._meta.installed = installed
             return app._meta.models
 
+        app._meta.installed = installed
+
         # import the app's models module and handle ImportErrors
         try:
             # this will register any models not yet registered
@@ -207,7 +209,6 @@ class AppCache(object):
 
         self.nesting_level -= 1
         app._meta.models_module = models
-        app._meta.installed = installed
         app.register_models()
         return models
 
@@ -217,11 +218,6 @@ class AppCache(object):
             if module in sys.modules:
                 del sys.modules[module]
         self.loaded_apps.remove(app)
-        # try:
-            # del(self.app_models[app._meta.label])
-        # except KeyError:
-            # this app may have had no model module
-            # pass
         self._get_models_cache.clear()
 
     def unload_app(self, app_name=None, app_label=None):
@@ -337,8 +333,7 @@ class AppCache(object):
         self._populate()
         app_list = []
         if app_mod:
-            app_label = app_mod.__name__.split('.')[-2]
-            app = self.get_app_instance(app_label)
+            app = self.find_app_by_models_module(app_mod)
             if app:
                 app_list = [app]
         else:
@@ -376,29 +371,31 @@ class AppCache(object):
         """
         app = self.get_app_instance(app_label)
         if not app:
-            app = App.from_label(app_label)() #(label=app_label)
+            # create a 'naive' app - one that was created solely as a models holder
+            app = App.from_label(app_label)()
             self.loaded_apps.append(app)
             app._meta.naive = True
         for model in models:
             if app._meta.models_module is None:
                 app._meta.models_module = model.__module__
             model_name = model._meta.object_name.lower()
-            app._meta.models[model_name] = model
             # model_dict = self.app_models.setdefault(app_label, SortedDict())
-            # if model_name in model_dict:
+            if model_name in app._meta.models:
                 # The same model may be imported via different paths (e.g.
                 # appname.models and project.appname.models). We use the source
                 # filename as a means to detect identity.
-                # fname1 = os.path.abspath(sys.modules[model.__module__].__file__)
-                # fname2 = os.path.abspath(sys.modules[model_dict[model_name].__module__].__file__)
+                fname1 = os.path.abspath(sys.modules[model.__module__].__file__)
+                fname2 = os.path.abspath(sys.modules[app._meta.models[model_name].__module__].__file__)
                 # Since the filename extension could be .py the first time and
                 # .pyc or .pyo the second time, ignore the extension when
                 # comparing.
-                # if os.path.splitext(fname1)[0] == os.path.splitext(fname2)[0]:
-                    # continue
-                # else:
-                    # raise ImproperlyConfigured(
-                            # 'A model named %s is already registered for this app' %
-                            # model_name)
+                if os.path.splitext(fname1)[0] == os.path.splitext(fname2)[0]:
+                    continue
+                else:
+                    raise ImproperlyConfigured(
+                            'A model named %s is already registered for this app' %
+                            model_name)
+
+            app._meta.models[model_name] = model
 
         self._get_models_cache.clear()
