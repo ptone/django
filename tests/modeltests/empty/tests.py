@@ -1,10 +1,8 @@
 from __future__ import absolute_import
 
 from django.apps import app_cache
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
-from django.test.utils import override_settings
 
 from .models import Empty
 

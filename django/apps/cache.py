@@ -157,7 +157,6 @@ class AppCache(object):
                 the loading will be postponed and tried again when all other
                 modules are loaded.
         """
-        # print 'loading app: %s, installed: %s' % (app_name, installed)
         if app_kwargs is None:
             app_kwargs = {}
 
@@ -385,7 +384,6 @@ class AppCache(object):
             app._meta.naive = True
         for model in models:
             model_name = model._meta.object_name.lower()
-            # model_dict = self.app_models.setdefault(app_label, SortedDict())
             if model_name in app._meta.models:
                 # The same model may be imported via different paths (e.g.
                 # appname.models and project.appname.models). We use the source

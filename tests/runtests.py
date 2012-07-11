@@ -8,7 +8,6 @@ import warnings
 
 from django import contrib
 
-
 # databrowse is deprecated, but we still want to run its tests
 warnings.filterwarnings('ignore', "The Databrowse contrib app is deprecated",
                         DeprecationWarning, 'django.contrib.databrowse')
@@ -137,6 +136,7 @@ def setup(verbosity, test_labels):
             if mod:
                 if module_label not in settings.INSTALLED_APPS:
                     settings.INSTALLED_APPS.append(module_label)
+
     app_cache._populate()
     return state
 
