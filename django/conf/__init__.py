@@ -55,6 +55,8 @@ class LazySettings(LazyObject):
         for name, value in options.items():
             setattr(holder, name, value)
         self._wrapped = holder
+        from django.apps import app_cache
+        app_cache._populate()
 
     @property
     def configured(self):

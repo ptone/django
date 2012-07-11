@@ -4,6 +4,7 @@ import sys
 import types
 
 from django import http
+from django.apps import app_cache
 from django.core import signals
 from django.utils.encoding import force_text
 from django.utils.importlib import import_module
@@ -24,6 +25,7 @@ class BaseHandler(object):
 
     def __init__(self):
         self._request_middleware = self._view_middleware = self._template_response_middleware = self._response_middleware = self._exception_middleware = None
+        app_cache._populate()
 
 
     def load_middleware(self):
