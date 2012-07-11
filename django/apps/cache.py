@@ -88,9 +88,14 @@ class AppCache(object):
             if not self.nesting_level:
                 for app_name, app_kwargs in self.postponed:
                     self.load_app(app_name, app_kwargs, installed=True)
+                for app in self.loaded_apps:
+                    app.register_models()
+                    if getattr(app, 'post_load', None) and hasattr(
+                            app.post_load, '__call__'):
+                        app.post_load()
                 # check if there is more than one app with the same
                 # db_prefix attribute
-                models_apps = [app for app in self.loaded_apps if len(app._meta.models)]
+                models_apps = [app for app in self.loaded_apps if app._meta.models_module]
                 for app1 in models_apps:
                     for app2 in models_apps:
                         if (app1 != app2 and
@@ -98,11 +103,6 @@ class AppCache(object):
                             raise ImproperlyConfigured(
                                 'The apps "%s" and "%s" have the same db_prefix "%s"'
                                 % (app1, app2, app1._meta.db_prefix))
-                for app in self.loaded_apps:
-                    app.register_models()
-                    if getattr(app, 'post_load', None) and hasattr(
-                            app.post_load, '__call__'):
-                        app.post_load()
                 self.loaded = True
                 # send the post_apps_loaded signal
                 post_apps_loaded.send(sender=self, apps=self.loaded_apps)
