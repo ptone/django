@@ -243,6 +243,9 @@ class BaseCommand(object):
         self.stderr = OutputWrapper(options.get('stderr', sys.stderr), self.style.ERROR)
 
         if self.can_import_settings:
+            # populate the app_cache early
+            app_cache._populate()
+
             from django.utils import translation
             saved_lang = translation.get_language()
             translation.activate('en-us')
