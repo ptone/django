@@ -78,7 +78,7 @@ class App(object):
         # make sure models registered at import time are assigned to the app
         same_label_apps = [app for app in app_cache.loaded_apps if app._meta.label == self._meta.label]
         for app in same_label_apps:
-            if app._meta.naive and app != self:
+            if app != self and not app._meta.installed:
                 self._meta.models.update(app._meta.models)
                 app_cache.loaded_apps.remove(app)
 
