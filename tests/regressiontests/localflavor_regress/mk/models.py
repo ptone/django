@@ -12,4 +12,4 @@ class MKPerson(models.Model):
     municipality_req = MKMunicipalityField(blank = False)
 
     class Meta:
-        app_label = 'localflavor'
+        app_label = 'localflavor_regress'
