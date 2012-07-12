@@ -186,9 +186,15 @@ class AppCache(object):
                         app._meta.label)
 
             app._meta.installed = installed
-            return app._meta.models
+            return app._meta.models_module
 
         app._meta.installed = installed
+
+        # if the app was created with a label only - it has no module known
+        # and has no models module
+        if not app._meta.module:
+            self.nesting_level -=1
+            return app._meta.models_module
 
         # import the app's models module and handle ImportErrors
         try:
