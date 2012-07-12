@@ -12,4 +12,4 @@ class USPlace(models.Model):
     name = models.CharField(max_length=20)
 
     class Meta:
-        app_label = 'localflavor'
+        app_label = 'localflavor_regress'

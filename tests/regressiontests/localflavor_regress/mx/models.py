@@ -10,4 +10,4 @@ class MXPersonProfile(models.Model):
     zip_code = MXZipCodeField()
 
     class Meta:
-        app_label = 'localflavor'
+        app_label = 'localflavor_regress'
