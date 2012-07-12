@@ -165,7 +165,7 @@ class AppCache(object):
         # check if an app instance with app_name already exists, if not
         # then create one
         app = self.get_app_instance(app_name.split('.')[-1])
-        if app and app._meta.naive:
+        if app and not app._meta.installed:
             # a naive app was created by model imports
             # it will be removed when models are registered with app
             # at the end of the _populate function
@@ -386,7 +386,6 @@ class AppCache(object):
             # create a 'naive' app - one that was created solely as a models holder
             app = App.from_label(app_label)()
             self.loaded_apps.append(app)
-            app._meta.naive = True
         for model in models:
             model_name = model._meta.object_name.lower()
             if model_name in app._meta.models:
