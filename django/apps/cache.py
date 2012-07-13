@@ -27,6 +27,8 @@ def _initialize():
         'postponed': [],
         'nesting_level': 0,
         '_get_models_cache': {},
+        # this is a hack used to preserve some global state across tests
+        '_test_mode': False,
     }
 
 
@@ -38,6 +40,7 @@ class AppCache(object):
     # Use the Borg pattern to share state between all instances. Details at
     # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/66531.
     __shared_state = dict(_initialize())
+    __app_cache_cellar = {}
 
     def __init__(self):
         self.__dict__ = self.__shared_state
@@ -46,6 +49,10 @@ class AppCache(object):
         """
         Resets the cache to its initial (unseeded) state
         """
+        if self._test_mode:
+            for app in self.loaded_apps:
+                self.__app_cache_cellar.setdefault(app._meta.label,{}).update(app._meta.models)
+
         for app in self.loaded_apps:
             self._unload_app(app)
 
@@ -106,6 +113,8 @@ class AppCache(object):
                 self.loaded = True
                 # send the post_apps_loaded signal
                 post_apps_loaded.send(sender=self, apps=self.loaded_apps)
+                if self._test_mode:
+                    self._test_repair()
         finally:
             imp.release_lock()
 
@@ -146,7 +155,7 @@ class AppCache(object):
         return App.from_name(app_name)
 
     def load_app(self, app_name, app_kwargs=None, can_postpone=False,
-            installed=False):
+            installed=False, naive=False):
         """
         Loads the app with the provided fully qualified name, and returns the
         model module.
@@ -173,6 +182,12 @@ class AppCache(object):
             app = None
         if not app:
             app_class = self.get_app_class(app_name)
+            if not app_class._meta.module and not naive:
+                # In this case, the naive app created - and the time
+                # the app options were created, no module could be imported
+                # this is not an error for model imports, but is for app
+                # being explicitly loaded
+                raise ImportError("the App %s could not be imported")
             app = app_class(**app_kwargs)
             self.loaded_apps.append(app)
             # Send the signal that the app has been loaded
@@ -235,7 +250,20 @@ class AppCache(object):
             module = model.__module__
             if module in sys.modules:
                 del sys.modules[module]
-        self.loaded_apps.remove(app)
+
+        if app._meta.module:
+            app_module = app._meta.module.__name__
+            if app_module in sys.modules:
+                del sys.modules[app_module]
+
+        if app._meta.models_module:
+            models_module = app._meta.models_module.__name__
+            if models_module in sys.modules:
+                del sys.modules[models_module]
+        app._meta.models = {}
+        if app in self.loaded_apps:
+            self.loaded_apps.remove(app)
+        del(app)
         self._get_models_cache.clear()
 
     def unload_app(self, app_name=None, app_label=None):
@@ -415,3 +443,23 @@ class AppCache(object):
             app._meta.models[model_name] = model
 
         self._get_models_cache.clear()
+
+    def _test_repair(self):
+        """
+        This is a huge hack - and is only used in a testing context
+
+        Because of the way apps reference models and models reference apps
+        a Python class imported in the scope of one test function, will not
+        necasarily be reimported in another test funciton. As such the model
+        metaclass is not called, and the model is not re-registered with a
+        reset app_cache. This method keeps a copy of the model-app associations
+        and reconnects them after a cache reset.
+        """
+        for app in self.loaded_apps:
+            app_label = app._meta.label
+            if app_label in self.__app_cache_cellar:
+                for model, module in self.__app_cache_cellar[app_label].iteritems():
+                    if model not in app._meta.models:
+                        app._meta.models[model] = module
+                for model in app._meta.models.itervalues():
+                    model._meta.app = app

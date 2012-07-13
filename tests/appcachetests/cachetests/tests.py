@@ -11,15 +11,16 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.datastructures import SortedDict
 
-# remove when tests are integrated into the django testsuite
-settings.configure()
-
 
 class AppCacheTestCase(unittest.TestCase):
     """
     TestCase that resets the AppCache after each test.
     """
     def setUp(self):
+        this_dir = os.path.dirname(__file__)
+        if this_dir not in sys.path:
+            sys.path.append(this_dir)
+        os.chdir(this_dir)
         self.old_installed_apps = settings.INSTALLED_APPS
         settings.INSTALLED_APPS = ()
         settings.DATABASES = {
@@ -28,10 +29,12 @@ class AppCacheTestCase(unittest.TestCase):
                 'NAME': ':memory:'
             }
         }
+        app_cache._reset()
+        app_cache._test_mode = True
 
     def tearDown(self):
         settings.INSTALLED_APPS = self.old_installed_apps
-        app_cache._reset()
+        # app_cache._reset()
 
 class ReloadTests(AppCacheTestCase):
     """
@@ -58,9 +61,9 @@ class ReloadTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('model_app',)
         app_cache._populate()
-        self.assertTrue('model_app' in app_cache.app_models)
+        self.assertTrue('model_app' in [app._meta.label for app in app_cache.loaded_apps])
         app_cache._reload()
-        self.assertTrue('model_app' in app_cache.app_models)
+        self.assertTrue('model_app' in [app._meta.label for app in app_cache.loaded_apps])
 
 
 class AppCacheReadyTests(AppCacheTestCase):
@@ -192,9 +195,9 @@ class GetModelsModulesTests(AppCacheTestCase):
         Test that an exception is raised if two app instances
         have the same db_prefix attribute
         """
-        settings.INSTALLED_APPS = ('nomodel_app.app.MyApp',
+        settings.INSTALLED_APPS = ('anothermodel_app.app.MyOtherApp',
                                    'model_app.app.MyOtherApp')
-        self.assertRaises(ImproperlyConfigured, app_cache.get_models_modules)
+        self.assertRaises(ImproperlyConfigured, app_cache._populate)
 
 
 class GetModelsModuleTests(AppCacheTestCase):
@@ -268,12 +271,13 @@ class GetModelsTests(AppCacheTestCase):
         """
         Test that not only installed models are returned
         """
+        settings.INSTALLED_APPS = ('model_app',)
         from anothermodel_app.models import Job, Person, Contact
         from model_app.models import Person as p2
-        settings.INSTALLED_APPS = ('model_app',)
+        app_cache._test_repair()
         models = app_cache.get_models(only_installed=False)
         self.assertTrue(app_cache.ready())
-        self.assertEqual(models, [Job, Person, Contact, p2])
+        self.assertEqual(set(models), set([Job, Person, Contact, p2]))
 
     def test_app_mod(self):
         """
@@ -302,9 +306,11 @@ class GetModelsTests(AppCacheTestCase):
         Test that auto created models are included
         """
         settings.INSTALLED_APPS = ('anothermodel_app',)
+        app_cache._populate()
+        app_cache._reload()
+        from anothermodel_app.models import Job, Person
         models = app_cache.get_models(include_auto_created=True)
         self.assertTrue(app_cache.ready())
-        from anothermodel_app.models import Job, Person
         self.assertEqual(models[0], Job)
         self.assertEqual(models[1].__name__, 'Person_jobs')
         self.assertEqual(models[2], Person)
@@ -321,6 +327,8 @@ class GetModelsTests(AppCacheTestCase):
         """
         Test that the related m2m cache is filled correctly
         """
+        settings.INSTALLED_APPS = ('anothermodel_app',)
+        app_cache._test_repair()
         from anothermodel_app.models import Job
         self.assertEqual(Job._meta.get_all_field_names(),
                          ['id', 'name', 'person'])
@@ -519,7 +527,9 @@ class RegisterModelsTests(AppCacheTestCase):
         self.assertTrue(app_cache.ready())
         from model_app.models import Person
         app_cache.register_models('model_app_NONEXISTENT', *(Person,))
-        self.assertEquals(app_cache.app_models['model_app_NONEXISTENT']['person'], Person)
+        naive_app = app_cache.get_app_instance('model_app_NONEXISTENT')
+        loaded_person = naive_app._meta.models['person']
+        self.assertEquals(loaded_person, Person)
 
     def test_unseeded_cache(self):
         """
@@ -527,7 +537,9 @@ class RegisterModelsTests(AppCacheTestCase):
         """
         from model_app.models import Person
         self.assertFalse(app_cache.ready())
-        self.assertEquals(app_cache.app_models['model_app']['person'], Person)
+        naive_app = app_cache.get_app_instance('model_app')
+        loaded_person = naive_app._meta.models['person']
+        self.assertEquals(loaded_person, Person)
 
 
 class GetAppInstanceTests(AppCacheTestCase):
@@ -594,12 +606,12 @@ class GetAppInstanceTests(AppCacheTestCase):
         it still throws an exception
         """
         settings.INSTALLED_APPS = (
-            'nomodel_app.app.MyApp',
+            'anothermodel_app.app.MyOtherApp',
             ('model_app.app.MyOtherApp', {
                 'db_prefix': 'nomodel_app',
             }),
         )
-        self.assertRaises(ImproperlyConfigured, app_cache._populate)
+        self.assertRaises(ImproperlyConfigured, app_cache._reload)
 
     def test_class_attribute(self):
         """
@@ -607,7 +619,7 @@ class GetAppInstanceTests(AppCacheTestCase):
         instances, not only the _meta options.
         """
         settings.INSTALLED_APPS = ('model_app.app.MyApp',)
-        app_cache._populate()
+        app_cache._reload()
         model_app = app_cache.get_app_instance('model_app')
         self.assertEquals(model_app._meta.db_prefix, 'model_app')
         self.assertEquals(model_app.some_attribute, True)
