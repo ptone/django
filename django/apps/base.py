@@ -26,7 +26,8 @@ class AppBase(type):
         app_name = attrs.pop('_name', None)
         if app_name is None:
             # Figure out the app_name by looking one level up.
-            # For 'django.contrib.sites.app', this would be 'django.contrib.sites'
+            # For 'django.contrib.sites.app', this would be
+            # 'django.contrib.sites'
             app_module = sys.modules[new_class.__module__]
             app_name = app_module.__name__.rsplit('.', 1)[0]
         new_class.add_to_class('_meta', AppOptions(app_name, meta))
@@ -64,19 +65,22 @@ class App(object):
     def from_name(cls, name):
         upper = lambda match: match.group(1).upper()
         cls_name = module_name_re.sub(upper, name.split('.')[-1])
-        return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': name})
+        return type(cls_name[0].upper() +
+                cls_name[1:], (cls,), {'_name': name})
 
     @classmethod
     def from_label(cls, label):
         label = str(label)
         upper = lambda match: match.group(1).upper()
         cls_name = module_name_re.sub(upper, label)
-        return type(cls_name[0].upper()+cls_name[1:], (cls,), {'_name': label})
+        return type(cls_name[0].upper() +
+                cls_name[1:], (cls,), {'_name': label})
 
     def register_models(self):
         from django.apps import app_cache
         # make sure models registered at import time are assigned to the app
-        same_label_apps = [app for app in app_cache.loaded_apps if app._meta.label == self._meta.label]
+        same_label_apps = [app for app in app_cache.loaded_apps if
+                app._meta.label == self._meta.label]
         for app in same_label_apps:
             if app != self and not app._meta.installed:
                 self._meta.models.update(app._meta.models)
