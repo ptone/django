@@ -5,7 +5,6 @@ import warnings
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.datastructures import SortedDict
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 
@@ -51,7 +50,8 @@ class AppCache(object):
         """
         if self._test_mode:
             for app in self.loaded_apps:
-                self.__app_cache_cellar.setdefault(app._meta.label,{}).update(app._meta.models)
+                self.__app_cache_cellar.setdefault(
+                        app._meta.label, {}).update(app._meta.models)
 
         for app in self.loaded_apps:
             self._unload_app(app)
@@ -97,13 +97,15 @@ class AppCache(object):
                     self.load_app(app_name, app_kwargs, installed=True)
                 # check if there is more than one app with the same
                 # db_prefix attribute
-                models_apps = [app for app in self.loaded_apps if app._meta.models_module]
+                models_apps = [app for app in self.loaded_apps if
+                        app._meta.models_module]
                 for app1 in models_apps:
                     for app2 in models_apps:
                         if (app1 != app2 and
                                 app1._meta.db_prefix == app2._meta.db_prefix):
                             raise ImproperlyConfigured(
-                                'The apps "%s" and "%s" have the same db_prefix "%s"'
+                                'The apps "%s" and "%s"'
+                                ' have the same db_prefix "%s"'
                                 % (app1, app2, app1._meta.db_prefix))
                 for app in self.loaded_apps:
                     app.register_models()
@@ -208,13 +210,14 @@ class AppCache(object):
         # if the app was created with a label only - it has no module known
         # and has no models module
         if not app._meta.module:
-            self.nesting_level -=1
+            self.nesting_level -= 1
             return app._meta.models_module
 
         # import the app's models module and handle ImportErrors
         try:
             # this will register any models not yet registered
-            # in theorey these should already be loaded during app instantiation
+            # in theorey these should already be loaded during app
+            # instantiation
             models = import_module(app._meta.models_path)
         except ImportError:
             self.nesting_level -= 1
@@ -274,7 +277,6 @@ class AppCache(object):
         elif app_label:
             app = self.get_app_instance(app_label)
             self._unload_app(app)
-
 
     def get_app_instance(self, app_label=None, app_name=None):
         """
@@ -417,7 +419,8 @@ class AppCache(object):
         """
         app = self.get_app_instance(app_label)
         if not app:
-            # create a 'naive' app - one that was created solely as a models holder
+            # create a 'naive' app
+            # one that was created solely as a models holder
             app = App.from_label(app_label)()
             self.loaded_apps.append(app)
         for model in models:
@@ -426,8 +429,10 @@ class AppCache(object):
                 # The same model may be imported via different paths (e.g.
                 # appname.models and project.appname.models). We use the source
                 # filename as a means to detect identity.
-                fname1 = os.path.abspath(sys.modules[model.__module__].__file__)
-                fname2 = os.path.abspath(sys.modules[app._meta.models[model_name].__module__].__file__)
+                fname1 = os.path.abspath(
+                        sys.modules[model.__module__].__file__)
+                fname2 = os.path.abspath(sys.modules[
+                            app._meta.models[model_name].__module__].__file__)
                 # Since the filename extension could be .py the first time and
                 # .pyc or .pyo the second time, ignore the extension when
                 # comparing.
@@ -435,8 +440,8 @@ class AppCache(object):
                     continue
                 else:
                     raise ImproperlyConfigured(
-                            'A model named %s is already registered for this app' %
-                            model_name)
+                            'A model named %s'
+                            'is already registered for this app' % model_name)
 
             if app._meta.models_module is None:
                 app._meta.models_module = sys.modules[model.__module__]
@@ -458,7 +463,8 @@ class AppCache(object):
         for app in self.loaded_apps:
             app_label = app._meta.label
             if app_label in self.__app_cache_cellar:
-                for model, module in self.__app_cache_cellar[app_label].iteritems():
+                for model, module in \
+                        self.__app_cache_cellar[app_label].iteritems():
                     if model not in app._meta.models:
                         app._meta.models[model] = module
                 for model in app._meta.models.itervalues():
