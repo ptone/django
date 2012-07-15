@@ -110,3 +110,6 @@ class App(object):
                 # model._meta.app = self
             self._meta.models.update(parent_models)
         app_cache._get_models_cache.clear()
+
+    def get_model(self, name):
+        return self._meta.models.get(name, None)
