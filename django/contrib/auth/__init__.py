@@ -1,3 +1,4 @@
+from django.apps import app_cache
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.importlib import import_module
 from django.contrib.auth.signals import user_logged_in, user_logged_out
@@ -94,11 +95,9 @@ def logout(request):
 
 def get_user_model():
     "Return the User model that is active in this project"
-    from django.conf import settings
-    from django.db.models import get_model
-
-    app_label, model_name = settings.AUTH_USER_MODEL.split('.')
-    return get_model(app_label, model_name)
+    app = app_cache.get_app_instance('auth')
+    model_name = app.auth_user_model.split('.')[-1].lower()
+    return app._meta.models[model_name]
 
 
 def get_user(request):
