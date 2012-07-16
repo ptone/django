@@ -192,7 +192,9 @@ class AppCache(object):
                 # the app options were created, no module could be imported
                 # this is not an error for model imports, but is for app
                 # being explicitly loaded
-                raise ImportError("the App %s could not be imported")
+                # TODO this is temp disable in options as well
+                # raise ImportError("the App %s could not be imported")
+                pass
             app = app_class(**app_kwargs)
             self.loaded_apps.append(app)
             # Send the signal that the app has been loaded
