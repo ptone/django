@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
+from django.apps import app_cache
 from django.db import models
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.admin.util import quote
 from django.utils.translation import ugettext_lazy as _
@@ -20,7 +20,8 @@ class LogEntryManager(models.Manager):
 
 class LogEntry(models.Model):
     action_time = models.DateTimeField(_('action time'), auto_now=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(
+        app_cache.get_app_instance('auth').get_user_model(),)
     content_type = models.ForeignKey(ContentType, blank=True, null=True)
     object_id = models.TextField(_('object id'), blank=True, null=True)
     object_repr = models.CharField(_('object repr'), max_length=200)

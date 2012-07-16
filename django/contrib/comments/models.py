@@ -46,8 +46,6 @@ class Comment(BaseCommentAbstractModel):
     A user comment about some object.
     """
     authapp = app_cache.get_app_instance('auth')
-    print authapp.__file__
-
     # Who posted this comment? If ``user`` is set then it was an authenticated
     # user; otherwise at least user_name should have been set and the comment
     # was posted by a non-authenticated user.
@@ -176,7 +174,9 @@ class CommentFlag(models.Model):
     design users are only allowed to flag a comment with a given flag once;
     if you want rating look elsewhere.
     """
-    user      = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_('user'), related_name="comment_flags")
+    user      = models.ForeignKey(
+                    app_cache.get_app_instance('auth').get_user_model(),
+                    related_name="comment_flags")
     comment   = models.ForeignKey(Comment, verbose_name=_('comment'), related_name="flags")
     flag      = models.CharField(_('flag'), max_length=30, db_index=True)
     flag_date = models.DateTimeField(_('date'), default=None)
