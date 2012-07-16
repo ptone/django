@@ -1,7 +1,14 @@
 from __future__ import unicode_literals
 
+from datetime import date
+from StringIO import StringIO
+
+from django.apps import app_cache
 from django.contrib.auth import models, management
 from django.contrib.auth.management.commands import changepassword
+from django.contrib.auth.models import User
+from django.contrib.auth.tests import CustomUser
+from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
 from django.utils.six import StringIO
@@ -115,12 +122,12 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
         self.assertEqual(u.email, 'joe@somewhere.org')
         self.assertFalse(u.has_usable_password())
 
-    @override_settings(AUTH_USER_MODEL='auth.CustomUser')
     def test_swappable_user(self):
         "A superuser can be created when a custom User model is in use"
         # We can use the management command to create a superuser
         # We skip validation because the temporary substitution of the
         # swappable User model messes with validation.
+        app_cache.get_app_instance('auth').auth_user_model = 'auth.CustomUser'
         new_io = StringIO()
         call_command("createsuperuser",
             interactive=False,
@@ -136,13 +143,14 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
 
         # created password should be unusable
         self.assertFalse(u.has_usable_password())
+        app_cache.get_app_instance('auth').auth_user_model = 'auth.User'
 
-    @override_settings(AUTH_USER_MODEL='auth.CustomUser')
     def test_swappable_user_missing_required_field(self):
         "A superuser can be created when a custom User model is in use"
         # We can use the management command to create a superuser
         # We skip validation because the temporary substitution of the
         # swappable User model messes with validation.
+        app_cache.get_app_instance('auth').auth_user_model = 'auth.CustomUser'
         new_io = StringIO()
         with self.assertRaises(CommandError):
             call_command("createsuperuser",
@@ -154,3 +162,4 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
             )
 
         self.assertEqual(CustomUser.objects.count(), 0)
+        app_cache.get_app_instance('auth').auth_user_model = 'auth.User'
