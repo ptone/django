@@ -2,6 +2,9 @@ import re
 import sys
 
 from django.apps.options import AppOptions, DEFAULT_NAMES
+from django.core.exceptions import ImproperlyConfigured
+from django.utils.importlib import import_module
+from django.utils.module_loading import module_has_submodule
 
 module_name_re = re.compile(r'_([a-z])')
 
@@ -76,16 +79,42 @@ class App(object):
         return type(cls_name[0].upper() +
                 cls_name[1:], (cls,), {'_name': label})
 
-    def register_models(self):
+    def relocate_models(self):
         from django.apps import app_cache
         # make sure models registered at import time are assigned to the app
         same_label_apps = [app for app in app_cache.loaded_apps if
                 app._meta.label == self._meta.label]
         for app in same_label_apps:
-            if app != self and not app._meta.installed:
-                self._meta.models.update(app._meta.models)
-                app_cache.loaded_apps.remove(app)
+            if app != self:
+                if app._meta.installed:
+                    raise ImproperlyConfigured(
+                        'Multiple apps with the label %s can not be loaded' %
+                        app._meta.label)
+                else:
+                    self._meta.models.update(app._meta.models)
+                    app_cache._unload_app(app)
 
+
+    def register_models(self):
+        from django.apps import app_cache
+        try:
+            models = import_module(self._meta.models_path)
+            self._meta.models_module = models
+        except ImportError:
+            # If the app doesn't have a models module, we can just ignore the
+            # ImportError and return no models for it.
+            if not module_has_submodule(self._meta.module, 'models'):
+                return None
+            # But if the app does have a models module, we need to figure out
+            # whether to suppress or propagate the error. If can_postpone is
+            # True then it may be that the package is still being imported by
+            # Python and the models module isn't available yet. So we add the
+            # app to the postponed list and we'll try it again after all the
+            # recursion has finished (in populate). If can_postpone is False
+            # then it's time to raise the ImportError.
+            else:
+                raise
+        self.relocate_models()
         for model in self._meta.models.itervalues():
             # update the models reference to the app it is associated with
             model._meta.app = self

@@ -202,8 +202,8 @@ class AppCache(object):
             self.nesting_level -= 1
             if app._meta.name != app_name:
                 raise ImproperlyConfigured(
-                        'Multiple apps with the label %s can not be loaded' %
-                        app._meta.label)
+                    'Multiple apps with the label %s can not be loaded' %
+                    app._meta.label)
 
             app._meta.installed = installed
             return app._meta.models_module
@@ -216,40 +216,19 @@ class AppCache(object):
             self.nesting_level -= 1
             return app._meta.models_module
 
-        # import the app's models module and handle ImportErrors
-        try:
-            # this will register any models not yet registered
-            # in theorey these should already be loaded during app
-            # instantiation
-            models = import_module(app._meta.models_path)
-        except ImportError:
-            self.nesting_level -= 1
-            # If the app doesn't have a models module, we can just ignore the
-            # ImportError and return no models for it.
-            if not module_has_submodule(app._meta.module, 'models'):
-                return None
-            # But if the app does have a models module, we need to figure out
-            # whether to suppress or propagate the error. If can_postpone is
-            # True then it may be that the package is still being imported by
-            # Python and the models module isn't available yet. So we add the
-            # app to the postponed list and we'll try it again after all the
-            # recursion has finished (in populate). If can_postpone is False
-            # then it's time to raise the ImportError.
-            else:
-                if can_postpone:
-                    self.postponed.append((app_name, app_kwargs))
-                    return None
-                else:
-                    raise
-
         self.nesting_level -= 1
-        app._meta.models_module = models
-        # we need to call this after each loaded app - to remove any
-        # naive apps from self.loaded_apps, or it will be possible to have
-        # multiple non-naive apps loaded because get_app_instance will
-        # continue to return the naive version
-        app.register_models()
-        return models
+
+        if installed:
+            # we need to call this after each loaded app - to remove any
+            # naive apps from self.loaded_apps, or it will be possible to have
+            # multiple non-naive apps loaded because get_app_instance will
+            # continue to return the naive version
+            app.relocate_models()
+        # TODO this will currently always return None
+        # as we are postponing model import to register models
+        # this is probably the best way to decouple model loading
+        # from app loading
+        return app._meta.models_module
 
     def _unload_app(self, app):
         for model in app._meta.models.itervalues():
