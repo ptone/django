@@ -109,9 +109,9 @@ class AppCache(object):
                                 % (app1, app2, app1._meta.db_prefix))
                 for app in self.loaded_apps:
                     app.register_models()
-                    if getattr(app, 'post_load', None) and hasattr(
-                            app.post_load, '__call__'):
-                        app.post_load()
+                    post_load = getattr(app, 'post_load', None)
+                    if post_load is not None and callable(post_load):
+                        post_load()
                 self.loaded = True
                 # send the post_apps_loaded signal
                 post_apps_loaded.send(sender=self, apps=self.loaded_apps)
