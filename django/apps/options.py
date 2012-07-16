@@ -21,8 +21,10 @@ class AppOptions(object):
         self.label = self.name.split('.')[-1]
         self.models_module = None
         try:
-            self.module = import_module(self.name)
-            self.path = os.path.dirname(self.module.__file__)
+            # self.module = import_module(self.name)
+            # self.path = os.path.dirname(self.module.__file__)
+            self.module = None
+            self.path = ''
         except ImportError:
             self.module = None
             self.path = ''

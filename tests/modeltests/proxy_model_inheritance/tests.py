@@ -28,6 +28,9 @@ class ProxyModelInheritanceTests(TransactionTestCase):
                 installed=True)
         app_cache.load_app('modeltests.proxy_model_inheritance.app2',
                 installed=True)
+        app2 = app_cache.get_app_instance('app2')
+        # loading an app does not by itself trigger model imports
+        app2.register_models()
 
     def tearDown(self):
         sys.path = self.old_sys_path
