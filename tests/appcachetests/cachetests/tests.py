@@ -274,7 +274,7 @@ class GetModelsTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('model_app',)
         from anothermodel_app.models import Job, Person, Contact
         from model_app.models import Person as p2
-        app_cache._test_repair()
+        app_cache._populate()
         models = app_cache.get_models(only_installed=False)
         self.assertTrue(app_cache.ready())
         self.assertEqual(set(models), set([Job, Person, Contact, p2]))
@@ -287,9 +287,9 @@ class GetModelsTests(AppCacheTestCase):
         from model_app import models
         from model_app.models import Person
         settings.INSTALLED_APPS = ('model_app', 'anothermodel_app')
-        models = app_cache.get_models(app_mod=models)
+        models_list = app_cache.get_models(app_mod=models)
         self.assertTrue(app_cache.ready())
-        self.assertEqual(models, [Person])
+        self.assertEqual(models_list, [Person])
 
     def test_app_mod_not_installed(self):
         """
@@ -328,7 +328,7 @@ class GetModelsTests(AppCacheTestCase):
         Test that the related m2m cache is filled correctly
         """
         settings.INSTALLED_APPS = ('anothermodel_app',)
-        app_cache._test_repair()
+        app_cache._populate()
         from anothermodel_app.models import Job
         self.assertEqual(Job._meta.get_all_field_names(),
                          ['id', 'name', 'person'])
@@ -417,8 +417,10 @@ class LoadAppTests(AppCacheTestCase):
         Test that an app instance is created and the models
         module is returned
         """
-        mod = app_cache.load_app('model_app')
+        settings.INSTALLED_APPS = ('model_app',)
+        app_cache._populate()
         app = app_cache.loaded_apps[0]
+        mod = app._meta.models_module
         self.assertEqual(len(app_cache.loaded_apps), 1)
         self.assertEqual(app._meta.name, 'model_app')
         self.assertEqual(app._meta.models_module.__name__, 'model_app.models')
@@ -426,8 +428,10 @@ class LoadAppTests(AppCacheTestCase):
 
     def test_with_inheritance(self):
         from model_app.app import MyApp
-        mod = app_cache.load_app('model_app.app.MyOtherApp')
+        settings.INSTALLED_APPS = ('model_app.app.MyOtherApp',)
+        app_cache._populate()
         app = app_cache.loaded_apps[0]
+        mod = app._meta.models_module
         self.assertEqual(app._meta.name, 'model_app')
         self.assertEqual(app._meta.models_module.__name__, 'model_app.othermodels')
         self.assertEqual(mod.__name__, 'model_app.othermodels')
@@ -439,8 +443,10 @@ class LoadAppTests(AppCacheTestCase):
     def test_with_multiple_inheritance(self):
         from model_app.app import MyOtherApp
         from django.apps import App
-        mod = app_cache.load_app('model_app.app.MySecondApp')
+        settings.INSTALLED_APPS = ('model_app.app.MySecondApp',)
+        app_cache._populate()
         app = app_cache.loaded_apps[0]
+        mod = app._meta.models_module
         self.assertEqual(app._meta.name, 'model_app')
         self.assertEqual(app._meta.models_module.__name__, 'model_app.models')
         self.assertEqual(mod.__name__, 'model_app.models')
@@ -452,8 +458,10 @@ class LoadAppTests(AppCacheTestCase):
     def test_with_complicated_inheritance(self):
         from model_app.app import MySecondApp, YetAnotherApp
         from django.apps import App
-        mod = app_cache.load_app('model_app.app.MyThirdApp')
+        settings.INSTALLED_APPS = ('model_app.app.MyThirdApp',)
+        app_cache._populate()
         app = app_cache.loaded_apps[0]
+        mod = app._meta.models_module
         self.assertEqual(app._meta.name, 'model_app')
         self.assertEqual(app._meta.models_module.__name__, 'model_app.yetanother')
         self.assertEqual(mod.__name__, 'model_app.yetanother')
@@ -490,25 +498,18 @@ class LoadAppTests(AppCacheTestCase):
         Test that loading the same app twice results in only one app instance
         being created
         """
-        mod = app_cache.load_app('model_app')
-        mod2 = app_cache.load_app('model_app')
+        mod = app_cache.load_app('model_app', installed=True)
+        mod2 = app_cache.load_app('model_app', installed=True)
         self.assertEqual(len(app_cache.loaded_apps), 1)
-        self.assertEqual(mod.__name__, 'model_app.models')
-        self.assertEqual(mod2.__name__, 'model_app.models')
+        self.assertEqual('model_app', app_cache.loaded_apps[0]._meta.label)
 
     def test_importerror(self):
         """
         Test that an ImportError exception is raised if a package cannot
         be imported
         """
-        self.assertRaises(ImportError, app_cache.load_app, 'garageland')
-
-    def test_bad_models_kwarg(self):
-        """
-        Test that an error is raised when a invalid models module kwarg is given
-        """
-        self.assertRaises(ImportError, app_cache.load_app, 'model_app',
-                app_kwargs={'models_path':'no.such.thing'})
+        settings.INSTALLED_APPS = ('garageland',)
+        self.assertRaises(ImportError, app_cache._populate)
 
     def test_bad_models_path(self):
         """
@@ -645,12 +646,13 @@ class GetAppInstanceTests(AppCacheTestCase):
         it still throws an exception
         """
         settings.INSTALLED_APPS = (
+                'anothermodel_app.app.MyOtherApp'
             'anothermodel_app.app.MyOtherApp',
             ('model_app.app.MyOtherApp', {
                 'db_prefix': 'nomodel_app',
             }),
         )
-        self.assertRaises(ImproperlyConfigured, app_cache._reload)
+        self.assertRaises(ImproperlyConfigured, app_cache._populate)
 
     def test_class_attribute(self):
         """
@@ -740,8 +742,10 @@ class EggLoadingTests(AppCacheTestCase):
         """
         egg_name = '%s/modelapp.egg' % self.egg_dir
         sys.path.append(egg_name)
-        models = app_cache.load_app('app_with_models')
-        self.assertFalse(models is None)
+        settings.INSTALLED_APPS = ('app_with_models',)
+        app_cache._populate()
+        models_module = app_cache.get_app_instance('app_with_models')._meta.models_module
+        self.assertFalse(models_module is None)
 
     def test_egg2(self):
         """
@@ -760,8 +764,10 @@ class EggLoadingTests(AppCacheTestCase):
         """
         egg_name = '%s/omelet.egg' % self.egg_dir
         sys.path.append(egg_name)
-        models = app_cache.load_app('omelet.app_with_models')
-        self.assertFalse(models is None)
+        settings.INSTALLED_APPS = ('omelet.app_with_models',)
+        app_cache._populate()
+        models_module = app_cache.get_app_instance('app_with_models')._meta.models_module
+        self.assertFalse(models_module is None)
 
     def test_egg4(self):
         """
@@ -780,13 +786,17 @@ class EggLoadingTests(AppCacheTestCase):
         """
         egg_name = '%s/brokenapp.egg' % self.egg_dir
         sys.path.append(egg_name)
-        self.assertRaises(ImportError, app_cache.load_app, 'broken_app')
-        try:
-            app_cache.load_app('broken_app')
-        except ImportError, e:
-            # Make sure the message is indicating the actual
-            # problem in the broken app.
-            self.assertTrue("modelz" in e.args[0])
+        settings.INSTALLED_APPS = ('broken_app',)
+        self.assertRaises(ImportError, app_cache._populate)
+        # TODO this will require a separate tests - as once populate runs
+        # it can't be run a second time in a single test, and load() does
+        # not trigger imports by itself
+        # try:
+            # app_cache.load_app('broken_app')
+        # except ImportError, e:
+            # # Make sure the message is indicating the actual
+            # # problem in the broken app.
+            # self.assertTrue("modelz" in e.args[0])
 
 if __name__ == '__main__':
     unittest.main()

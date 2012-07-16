@@ -17,6 +17,8 @@ class InvalidModelTestCase(unittest.TestCase):
         # sys.stderr afterwards.
         app_cache.load_app("modeltests.invalid_models.invalid_models_app",
                 installed=True)
+        app = app_cache.get_app_instance('invalid_models_app')
+        app.register_models()
         self.old_stdout = sys.stdout
         self.stdout = StringIO()
         sys.stdout = self.stdout
