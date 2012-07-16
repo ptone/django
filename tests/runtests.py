@@ -32,7 +32,7 @@ REGRESSION_SUBDIRS_TO_SKIP = []
 
 ALWAYS_INSTALLED_APPS = [
     'django.contrib.contenttypes',
-    'django.contrib.auth',
+    'django.contrib.auth.app.AuthApp',
     'django.contrib.sites',
     'django.contrib.flatpages',
     'django.contrib.redirects',
@@ -71,6 +71,10 @@ def get_test_modules():
                 f == '__pycache__' or
                 f.startswith('sql') or
                 os.path.basename(f) in REGRESSION_SUBDIRS_TO_SKIP):
+                continue
+            if 'auth' in f and os.path.split(dirpath)[1] == 'contrib':
+                # the contrib auth app has an App object defined in
+                # always installed apps
                 continue
             modules.append((loc, f))
     return modules
