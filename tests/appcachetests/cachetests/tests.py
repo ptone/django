@@ -512,10 +512,25 @@ class LoadAppTests(AppCacheTestCase):
 
     def test_bad_models_path(self):
         """
-        Test that an error is raised if an invalid models_path is used
+        Test that an error is raised if an invalid models_path is used in Meta
         """
-        settings.INSTALLED_APPS = ('model_app.app.MyBadModelsPathApp')
+        settings.INSTALLED_APPS = ('model_app.app.MyBadModelsPathApp',)
         self.assertRaises(ImportError, app_cache._populate)
+
+    def test_bad_installed_apps_string(self):
+        """
+        Test that a non existant module in installed apps raises an error
+        """
+        settings.INSTALLED_APPS = ('no.such.path',)
+        self.assertRaises(ImproperlyConfigured, app_cache._populate)
+
+    def test_bad_appclass(self):
+        """
+        Test that an invalid path to an App subclass raises an error
+        """
+        settings.INSTALLED_APPS = ('model_app.app.NoSuchApp',)
+        self.assertRaises(ImproperlyConfigured, app_cache._populate)
+
 
 class RegisterModelsTests(AppCacheTestCase):
     """Tests for the register_models function"""
