@@ -531,6 +531,15 @@ class LoadAppTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('model_app.app.NoSuchApp',)
         self.assertRaises(ImproperlyConfigured, app_cache._populate)
 
+    def test_post_load_hook(self):
+        """
+        Test that the post load hook is fired
+        """
+        settings.INSTALLED_APPS = ('model_app.app.MyApp',)
+        settings.POST_LOAD_HOOK_FIRED = False
+        app_cache._populate()
+        self.assertTrue(settings.POST_LOAD_HOOK_FIRED)
+
 
 class RegisterModelsTests(AppCacheTestCase):
     """Tests for the register_models function"""

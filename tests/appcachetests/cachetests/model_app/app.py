@@ -6,6 +6,10 @@ class MyApp(apps.App):
     class Meta:
         models_path = 'model_app.othermodels'
 
+    def post_load(self):
+        from django.conf import settings
+        settings.POST_LOAD_HOOK_FIRED = True
+
 class MyOtherApp(MyApp):
 
     class Meta(MyApp.Meta):
