@@ -161,7 +161,7 @@ class AppCache(object):
         return App.from_name(app_name)
 
     def load_app(self, app_name, app_kwargs=None, can_postpone=False,
-            installed=False, naive=False):
+            installed=False):
         """
         Loads the app with the provided fully qualified name, and returns the
         model module.
@@ -189,14 +189,6 @@ class AppCache(object):
             app = None
         if not app:
             app_class = self.get_app_class(app_name)
-            if not app_class._meta.module and not naive:
-                # In this case, the naive app created - and the time
-                # the app options were created, no module could be imported
-                # this is not an error for model imports, but is for app
-                # being explicitly loaded
-                # TODO this is temp disable in options as well
-                # raise ImportError("the App %s could not be imported")
-                pass
             app = app_class(**app_kwargs)
             self.loaded_apps.append(app)
             # Send the signal that the app has been loaded
