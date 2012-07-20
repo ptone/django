@@ -34,3 +34,8 @@ class MyOverrideApp(MyOtherApp):
 
     pass
 
+class MyBadModelsPathApp(apps.App):
+
+    class Meta:
+        models_path = 'whatyoutalkingabout'
+
