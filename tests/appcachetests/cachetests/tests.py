@@ -401,6 +401,14 @@ class GetModelTests(AppCacheTestCase):
         model = app_cache.get_model('model_app', 'Person', seed_cache=False, only_installed=False)
         self.assertEquals(model, None)
 
+    def test_instance_get_model(self):
+        settings.INSTALLED_APPS = ('model_app',)
+        app_cache._populate()
+        from model_app.models import Person
+        model_app = app_cache.get_app_instance('model_app')
+        fetched_model = model_app.get_model('person')
+        self.assertEquals(fetched_model, Person)
+
 class LoadAppTests(AppCacheTestCase):
     """Tests for the load_app function"""
 
