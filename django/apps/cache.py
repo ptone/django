@@ -169,6 +169,7 @@ class AppCache(object):
             can_postpone: If set to True and the import raises an ImportError
                 the loading will be postponed and tried again when all other
                 modules are loaded.
+            installed: is the app installed, such as listed in INSTALLED_APPS
         """
         if app_kwargs is None:
             app_kwargs = {}
@@ -273,6 +274,12 @@ class AppCache(object):
         self._get_models_cache.clear()
 
     def unload_app(self, app_name=None, app_label=None):
+        """
+        Removes an app given either an app_name or app_label.
+
+        This should generally only be used in a testing context.  Removing apps
+        from a running Django process could lead to very unexpected results.
+        """
         if app_name:
             for app in self.loaded_apps:
                 if app._meta.name == app_name:
