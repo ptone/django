@@ -510,6 +510,13 @@ class LoadAppTests(AppCacheTestCase):
         self.assertRaises(ImportError, app_cache.load_app, 'model_app',
                 app_kwargs={'models_path':'no.such.thing'})
 
+    def test_bad_models_path(self):
+        """
+        Test that an error is raised if an invalid models_path is used
+        """
+        settings.INSTALLED_APPS = ('model_app.app.MyBadModelsPathApp')
+        self.assertRaises(ImportError, app_cache._populate)
+
 class RegisterModelsTests(AppCacheTestCase):
     """Tests for the register_models function"""
 
