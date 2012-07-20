@@ -1,0 +1,135 @@
+===================
+Application Objects
+===================
+
+.. module:: django.apps
+
+.. versionadded:: 1.5
+
+Django contains a system to organize Application objects provideing
+a standardized location for certain interactions between the framework and
+installed apps.
+
+Background
+==========
+
+Django has historically used the term Project to describe an installation of
+Django defined primarily by a settings.py file and a root URL configuration. The
+term application has been used for a python package that provides some set of
+encapsulated features to that project, and is wired into the project via the
+"INSTALLED_APPS" setting. This is somewhat confusing in the current terminology
+of using the phrase "web application" or "web app" to describe what equates
+more generally to a Django project.
+
+Django applications may provide some combination of models, views, templates,
+template tags, url routing, middleware etc. It is important to understand that
+a Django application is just a set of related python code that interacts with
+the APIs of Django as a framework.
+
+However there are a few places where it makes sense for Django to be able to
+interact with an application as a whole, which can represent the collection of
+code the comprises the application. This is done with Application objects.
+
+The App class
+=============
+
+Application objects are instances of a subclass of ``django.apps.App``. They
+provide a single place to gather meta information about your application,
+a place to store application specific settings, and a place to put application
+specific starup code.
+
+``Meta`` options
+----------------
+
+Similar to Django model's :doc:`Meta options <ref/models/options>`, application
+objects support specifying Django specific meta data inside an inner ``class
+Meta``.
+
+``db_prefix``
+~~~~~~~~~~~~~
+
+.. attribute:: AppOptions.db_table
+
+    If you wish to use a specific prefix for the data base table name other
+    than the application label. See more detail about how Django names database
+    tables in the model documentation ref/models/options.html#table-names
+
+``models_path``
+~~~~~~~~~~~~~~~
+
+.. attribute:: AppOptions.models_path
+
+    The fully qualified path to a module containing a set of application
+    specific Django models. By default this is the path of the current
+    application with ``models`` appended.
+
+
+``verbose_name``
+
+.. attribute:: AppOptions.verbose_name
+
+    A human-readable name for the application. This is used by the admin and
+    will be set to the application label if not specified.
+
+Custom attributes
+-----------------
+
+The ``class Meta`` options are primarily used by Django internally - however
+any subclass can of define custom attributes.
+
+Configuring Applications in INSTALLED_APPS
+------------------------------------------
+
+Both meta options and custom attributes can be configured inside the
+INSTALLED_APPS setting. INSTALLED_APPS consists of a tuple of items that must
+be either:
+
+ * A string consisting of a fully qualified path to a python package containing
+   a Django application, as created by :djadmin:`django-admin.py startapp
+   <startapp>`, or to a subclass of ``django.apps.App``.
+ * A tuple of a string to a Django application or application class as
+   described above and a dictionary containing application meta options and
+   configuration.
+
+Through this configuration via INSTALLED_APPS, applications can expose and
+manage options without adding additional global level Django settings.
+
+Subclassing the App class
+-------------------------
+
+While a subclass can be defined anywhere, it makes sense to define it inside an
+app.py file in the root of your Django application package.::
+
+    from django import apps
+
+    class BookApp(apps.App):
+
+        class Meta:
+            verbose_name = "Library Books"
+
+
+In addition to the above mentioned Meta options, or custom attributes an
+application objects can define a ``post_load`` method. This method will be
+called during Django's startup, when all applications are loaded. It will be
+called after all apps and their associated models modules are loaded, in the
+order of apps as listed in ``INSTALLED_APPS``.
+
+.. admonition:: Don't load models outside of post_load
+
+    Because there are often interdepencies between models, importing one set of
+    models may cascade the loading of other models. One of the features of
+    application objects is providing a place to store configuration options
+    that may be of interest to models when they are loaded. Having module level
+    imports inside your app.py, or inside your subclass's __init__ method can
+    trigger model imports before the application object has been created
+    - causing this configuration information to be unavailable to models.
+
+Accessing application instances
+===============================
+
+subject to change - use the app_cache
+
+Application loading signals
+===========================
+
+
