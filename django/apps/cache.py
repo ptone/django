@@ -2,6 +2,7 @@ import imp
 import sys
 import os
 import warnings
+from collections import namedtuple
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -20,7 +21,7 @@ def _initialize():
     return {
         # list of loaded app instances
         'loaded_apps': [],
-
+        'apps': None,
         # -- Everything below here is only used when populating the cache --
         'loaded': False,
         'postponed': [],
@@ -113,6 +114,7 @@ class AppCache(object):
                     if post_load is not None and callable(post_load):
                         post_load()
                 self.loaded = True
+                self._setup_apps()
                 # send the post_apps_loaded signal
                 post_apps_loaded.send(sender=self, apps=self.loaded_apps)
                 if self._test_mode:
@@ -267,6 +269,7 @@ class AppCache(object):
         if app in self.loaded_apps:
             self.loaded_apps.remove(app)
         del(app)
+        self._setup_apps()
         self._get_models_cache.clear()
 
     def unload_app(self, app_name=None, app_label=None):
@@ -448,6 +451,15 @@ class AppCache(object):
             app._meta.models[model_name] = model
 
         self._get_models_cache.clear()
+
+    def _setup_apps(self):
+        """
+        Configures a namedtuple for easier access of loaded apps
+        and their attributes
+        """
+        Apps = namedtuple(
+                'Apps', [app._meta.label for app in self.loaded_apps])
+        self.apps = Apps._make(self.loaded_apps)
 
     def _test_repair(self):
         """
