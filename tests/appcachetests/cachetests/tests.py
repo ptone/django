@@ -643,6 +643,16 @@ class GetAppInstanceTests(AppCacheTestCase):
         found_app = app_cache.find_app_by_models_module(othermodels)
         self.assertEquals(found_app, app)
 
+    def test_apps_collection_access(self):
+        """
+        test the namedtuple convenience collection
+        """
+        settings.INSTALLED_APPS = ('model_app',)
+        app_cache._populate()
+        app1 = app_cache.get_app_instance('model_app')
+        app2 = app_cache.apps.model_app
+        self.assertEquals(app1, app2)
+
 class SignalTests(AppCacheTestCase):
     """Tests for the signals"""
 
