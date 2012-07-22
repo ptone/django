@@ -25,7 +25,6 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import curry
 from django.utils.encoding import smart_str, force_unicode
 from django.utils import six
-from django.utils.six import with_metaclass
 from django.utils.text import get_text_list, capfirst
 
 
