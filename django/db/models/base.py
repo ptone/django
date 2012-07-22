@@ -34,9 +34,10 @@ class ModelBase(type):
     """
     def __new__(cls, name, bases, attrs):
         super_new = super(ModelBase, cls).__new__
-        parents = [b for b in bases if isinstance(b, ModelBase)]
-        if name == "Model":
-            parents = []
+        # 'NewBase' is an extra base class inserted by the six python3
+        # compatibility library
+        parents = [b for b in bases if isinstance(b, ModelBase) and
+                b.__name__ != 'NewBase']
         if not parents:
             # If this isn't a subclass of Model, don't do anything special.
             return super_new(cls, name, bases, attrs)
