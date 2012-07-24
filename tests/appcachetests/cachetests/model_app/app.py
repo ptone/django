@@ -4,7 +4,7 @@ class MyApp(apps.App):
     some_attribute = True
 
     class Meta:
-        models_path = 'model_app.othermodels'
+        models_path = 'appcachetests.cachetests.model_app.othermodels'
 
     def post_load(self):
         from django.conf import settings
@@ -19,13 +19,13 @@ class MyOtherApp(MyApp):
 class MySecondApp(MyOtherApp):
 
     class Meta(MyOtherApp.Meta):
-        models_path = 'model_app.models'
+        models_path = 'appcachetests.cachetests.model_app.models'
 
 
 class YetAnotherApp(apps.App):
 
     class Meta:
-        models_path = 'model_app.yetanother'
+        models_path = 'appcachetests.cachetests.model_app.yetanother'
 
 
 class MyThirdApp(YetAnotherApp, MySecondApp):
