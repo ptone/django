@@ -110,8 +110,9 @@ class AppCache(object):
                                     'The apps "%s" and "%s"'
                                     ' have the same db_prefix "%s"'
                                     % (app, app2, app._meta.db_prefix))
-                    app._meta.module = import_module(app._meta.name)
-                    app._meta.path = os.path.dirname(app._meta.module.__file__)
+                    if app._meta.installed:
+                        app._meta.module = import_module(app._meta.name)
+                        app._meta.path = os.path.dirname(app._meta.module.__file__)
                     app.register_models()
                     post_load = getattr(app, 'post_load', None)
                     if post_load is not None and callable(post_load):
