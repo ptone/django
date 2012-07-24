@@ -310,8 +310,11 @@ class AppCache(object):
             # anomolies where the app_cache is reset
             # equality could be used if the _test_repair method handled
             # restoring models_module
+            # the file may be a py file on first import, but a pyc on second
+            # import. This is a very infrequently used method.
             if (app._meta.models_module.__name__ == models_module.__name__ and
-                app._meta.models_module.__file__ == models_module.__file__):
+                app._meta.models_module.__file__.rstrip('c') ==
+                models_module.__file__.rstrip('c')):
                 return app
 
     def ready(self):
