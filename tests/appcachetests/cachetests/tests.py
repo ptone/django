@@ -30,7 +30,7 @@ class AppCacheTestCase(unittest.TestCase):
 
     def tearDown(self):
         settings.INSTALLED_APPS = self.old_installed_apps
-        # app_cache._reset()
+        app_cache._reset()
 
 class ReloadTests(AppCacheTestCase):
     """
