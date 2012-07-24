@@ -3,7 +3,7 @@ from django import apps
 class MyApp(apps.App):
 
     class Meta:
-        models_path = 'model_app.othermodels'
+        models_path = 'appcachetests.cachetests.model_app.othermodels'
 
 class MyOtherApp(MyApp):
 
