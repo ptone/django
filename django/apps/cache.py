@@ -306,6 +306,10 @@ class AppCache(object):
         for app in self.loaded_apps:
             if not app._meta.models_module:
                 continue
+            # we don't test for absolute module equality here due to testing
+            # anomolies where the app_cache is reset
+            # equality could be used if the _test_repair method handled
+            # restoring models_module
             if (app._meta.models_module.__name__ == models_module.__name__ and
                 app._meta.models_module.__file__ == models_module.__file__):
                 return app
