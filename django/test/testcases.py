@@ -17,6 +17,7 @@ import socket
 import threading
 import errno
 
+from django.apps import app_cache
 from django.conf import settings
 from django.contrib.staticfiles.handlers import StaticFilesHandler
 from django.core import mail
@@ -1174,3 +1175,29 @@ class LiveServerTestCase(TransactionTestCase):
                 conn.allow_thread_sharing = False
 
         super(LiveServerTestCase, cls).tearDownClass()
+
+class AppCacheTestCase(SimpleTestCase):
+    """
+    TestCase that resets the AppCache after each test.
+
+    This is defined here so that it can be used in ordering tests from
+    inside django.test.simple
+    """
+    def setUp(self):
+        self.old_installed_apps = settings.INSTALLED_APPS
+        settings.INSTALLED_APPS = ()
+        settings.DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': ':memory:'
+            }
+        }
+        app_cache._reset()
+        app_cache._test_mode = True
+
+    def tearDown(self):
+        settings.INSTALLED_APPS = self.old_installed_apps
+        app_cache._reset()
+        app_cache._test_mode = True
+
+

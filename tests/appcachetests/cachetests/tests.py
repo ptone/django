@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import sys
-import unittest
 import threading
 
 from django.apps import app_cache
@@ -9,28 +8,10 @@ from django.apps.cache import _initialize
 from django.apps.signals import app_loaded, post_apps_loaded
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.test.testcases import AppCacheTestCase
 from django.utils.datastructures import SortedDict
+from django.utils import unittest
 
-
-class AppCacheTestCase(unittest.TestCase):
-    """
-    TestCase that resets the AppCache after each test.
-    """
-    def setUp(self):
-        self.old_installed_apps = settings.INSTALLED_APPS
-        settings.INSTALLED_APPS = ()
-        settings.DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': ':memory:'
-            }
-        }
-        app_cache._reset()
-        app_cache._test_mode = True
-
-    def tearDown(self):
-        settings.INSTALLED_APPS = self.old_installed_apps
-        app_cache._reset()
 
 class ReloadTests(AppCacheTestCase):
     """
