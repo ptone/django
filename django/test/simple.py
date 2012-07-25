@@ -5,7 +5,8 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import _doctest as doctest
 from django.test.utils import setup_test_environment, teardown_test_environment
-from django.test.testcases import OutputChecker, DocTestRunner
+from django.test.testcases import (AppCacheTestCase, OutputChecker,
+        DocTestRunner)
 from django.utils import unittest
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
@@ -167,6 +168,12 @@ def partition_suite(suite, classes, bins):
         if isinstance(test, unittest.TestSuite):
             partition_suite(test, classes, bins)
         else:
+            if isinstance(test, AppCacheTestCase):
+                # app cache related tests muck with global state in a way
+                # that is very difficult to restore and so are placed after
+                # standard tests
+                bins[-1].addTest(test)
+                continue
             for i in range(len(classes)):
                 if isinstance(test, classes[i]):
                     bins[i].addTest(test)

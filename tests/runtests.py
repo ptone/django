@@ -61,8 +61,6 @@ def get_test_modules():
         (MODEL_TESTS_DIR_NAME, MODEL_TEST_DIR),
         (REGRESSION_TESTS_DIR_NAME, REGRESSION_TEST_DIR),
         (CONTRIB_DIR_NAME, CONTRIB_DIR),
-        # Note AppCache tests need to be last, because they mess too much with 
-        # test suite state
         (APPCACHE_TESTS_DIR_NAME, APPCACHE_TEST_DIR),):
         for f in os.listdir(dirpath):
             if (f.startswith('__init__') or
