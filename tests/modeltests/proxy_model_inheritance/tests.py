@@ -34,6 +34,8 @@ class ProxyModelInheritanceTests(TransactionTestCase):
 
     def tearDown(self):
         sys.path = self.old_sys_path
+        app_cache.unload_app(app_name='modeltests.proxy_model_inheritance.app1')
+        app_cache.unload_app(app_name='modeltests.proxy_model_inheritance.app2')
 
     def test_table_exists(self):
         call_command('syncdb', verbosity=0)
