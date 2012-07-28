@@ -55,7 +55,7 @@ class App(object):
     __metaclass__ = AppBase
 
     def __init__(self, **options):
-        for key, value in options.iteritems():
+        for key, value in options.items():
             if key in DEFAULT_NAMES:
                 setattr(self._meta, key, value)
             else:
@@ -119,7 +119,7 @@ class App(object):
                 # then it's time to raise the ImportError.
                 else:
                     raise
-        for model in self._meta.models.itervalues():
+        for model in self._meta.models.values():
             # update the models reference to the app it is associated with
             model._meta.app = self
             # update the db_table of the model if set by the app
@@ -136,7 +136,7 @@ class App(object):
         for parent in reversed(parents):
             parent._meta.installed = self._meta.installed
             parent_models = parent._meta.models
-            for model in parent_models.itervalues():
+            for model in parent_models.values():
                 pass
                 # TODO what really should these parents be set to here?
                 # model._meta.app_label = self._meta.label
