@@ -141,7 +141,7 @@ class AppCache(object):
             # Secondly, try to import the module directly,
             # because it'll fail with a class path or a bad path
             app_module = import_module(app_path)
-        except ImportError, e:
+        except ImportError as e:
             raise ImproperlyConfigured(
                 "Could not import app '%s': %s" % (app_path, e))
         else:
@@ -247,7 +247,7 @@ class AppCache(object):
         return app._meta.models_module
 
     def _unload_app(self, app):
-        for model in app._meta.models.itervalues():
+        for model in app._meta.models.values():
             module = model.__module__
             if module in sys.modules:
                 del sys.modules[module]
@@ -408,7 +408,7 @@ class AppCache(object):
             app_list = [app for app in app_list if app._meta.installed]
         for app in app_list:
             model_list.extend(
-                model for model in app._meta.models.values()
+                model for model in list(app._meta.models.values())
                 if ((not model._deferred or include_deferred) and
                     (not model._meta.auto_created or include_auto_created))
             )
@@ -492,8 +492,8 @@ class AppCache(object):
             app_label = app._meta.label
             if app_label in self.__app_cache_cellar:
                 for model, module in \
-                        self.__app_cache_cellar[app_label].iteritems():
+                        self.__app_cache_cellar[app_label].items():
                     if model not in app._meta.models:
                         app._meta.models[model] = module
-                for model in app._meta.models.itervalues():
+                for model in app._meta.models.values():
                     model._meta.app = app
