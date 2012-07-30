@@ -93,13 +93,6 @@ def logout(request):
         request.user = AnonymousUser()
 
 
-def get_user_model():
-    "Return the User model that is active in this project"
-    app = app_cache.get_app_instance('auth')
-    model_name = app.auth_user_model.split('.')[-1].lower()
-    return app._meta.models[model_name]
-
-
 def get_user(request):
     from django.contrib.auth.models import AnonymousUser
     try:

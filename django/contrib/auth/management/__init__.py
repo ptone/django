@@ -7,7 +7,8 @@ import getpass
 import locale
 import unicodedata
 
-from django.contrib.auth import models as auth_app, get_user_model
+from django.apps import app_cache
+from django.contrib.auth import models as auth_app
 from django.core import exceptions
 from django.db.models import get_models, signals
 
@@ -63,7 +64,7 @@ def create_permissions(app, created_models, verbosity, **kwargs):
 def create_superuser(app, created_models, verbosity, db, **kwargs):
     from django.core.management import call_command
 
-    UserModel = get_user_model()
+    UserModel = app_cache.apps.auth.get_user_model()
 
     if UserModel in created_models and kwargs.get('interactive', True):
         msg = ("\nYou just installed Django's auth system, which means you "

@@ -6,7 +6,7 @@ import getpass
 import sys
 from optparse import make_option
 
-from django.contrib.auth import get_user_model
+from django.apps import app_cache
 from django.contrib.auth.management import get_default_username
 from django.core import exceptions
 from django.core.management.base import BaseCommand, CommandError
@@ -28,7 +28,7 @@ class Command(BaseCommand):
     ) + tuple(
         make_option('--%s' % field, dest=field, default=None,
             help='Specifies the %s for the superuser.' % field)
-        for field in getattr(get_user_model(), 'REQUIRED_FIELDS', ['email'])
+        for field in getattr(app_cache.apps.auth.get_user_model(), 'REQUIRED_FIELDS', ['email'])
     )
 
     help = 'Used to create a superuser.'
@@ -39,7 +39,7 @@ class Command(BaseCommand):
         verbosity = int(options.get('verbosity', 1))
         database = options.get('database')
 
-        UserModel = get_user_model()
+        UserModel = app_cache.apps.auth.get_user_model()
 
         username_field = UserModel._meta.get_field(getattr(UserModel, 'USERNAME_FIELD', 'username'))
         other_fields = getattr(UserModel, 'REQUIRED_FIELDS', ['email'])

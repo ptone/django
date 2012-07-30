@@ -127,7 +127,7 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
         # We can use the management command to create a superuser
         # We skip validation because the temporary substitution of the
         # swappable User model messes with validation.
-        app_cache.get_app_instance('auth').auth_user_model = 'auth.CustomUser'
+        app_cache.get_app_instance('auth').user_model = 'auth.CustomUser'
         new_io = StringIO()
         call_command("createsuperuser",
             interactive=False,
@@ -143,14 +143,14 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
 
         # created password should be unusable
         self.assertFalse(u.has_usable_password())
-        app_cache.get_app_instance('auth').auth_user_model = 'auth.User'
+        app_cache.get_app_instance('auth').user_model = 'auth.User'
 
     def test_swappable_user_missing_required_field(self):
         "A superuser can be created when a custom User model is in use"
         # We can use the management command to create a superuser
         # We skip validation because the temporary substitution of the
         # swappable User model messes with validation.
-        app_cache.get_app_instance('auth').auth_user_model = 'auth.CustomUser'
+        app_cache.get_app_instance('auth').user_model = 'auth.CustomUser'
         new_io = StringIO()
         with self.assertRaises(CommandError):
             call_command("createsuperuser",
@@ -162,4 +162,4 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
             )
 
         self.assertEqual(CustomUser.objects.count(), 0)
-        app_cache.get_app_instance('auth').auth_user_model = 'auth.User'
+        app_cache.get_app_instance('auth').user_model = 'auth.User'

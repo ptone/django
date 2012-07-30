@@ -1,7 +1,7 @@
 import getpass
 from optparse import make_option
 
-from django.contrib.auth import get_user_model
+from django.apps import app_cache
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DEFAULT_DB_ALIAS
 
@@ -30,7 +30,7 @@ class Command(BaseCommand):
         else:
             username = getpass.getuser()
 
-        UserModel = get_user_model()
+        UserModel = app_cache.apps.auth.get_user_model()
 
         try:
             u = UserModel.objects.using(options.get('database')).get(**{

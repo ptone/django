@@ -3,7 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 
 class AuthApp(apps.App):
 
-    auth_user_model = 'auth.User'
+    user_model = 'django.contrib.auth.models.User'
     class Meta:
         verbose_name = _('auth')
 

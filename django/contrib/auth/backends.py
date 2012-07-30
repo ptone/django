@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
+from django.apps import app_cache
 from django.contrib.auth.models import User, Permission
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 
 
@@ -14,7 +14,7 @@ class ModelBackend(object):
     # configurable.
     def authenticate(self, username=None, password=None):
         try:
-            UserModel = get_user_model()
+            UserModel = app_cache.apps.auth.get_user_model()
             user = UserModel.objects.get(**{
                 getattr(UserModel, 'USERNAME_FIELD', 'username'): username
             })
@@ -65,7 +65,7 @@ class ModelBackend(object):
 
     def get_user(self, user_id):
         try:
-            UserModel = get_user_model()
+            UserModel = app_cache.apps.auth.get_user_model()
             return UserModel.objects.get(pk=user_id)
         except UserModel.DoesNotExist:
             return None
@@ -100,7 +100,7 @@ class RemoteUserBackend(ModelBackend):
         user = None
         username = self.clean_username(remote_user)
 
-        UserModel = get_user_model()
+        UserModel = app_cache.apps.auth.get_user_model()
 
         # Note that this could be accomplished in one try-except clause, but
         # instead we use get_or_create when creating unknown users since it has
