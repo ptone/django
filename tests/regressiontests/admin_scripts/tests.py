@@ -1049,7 +1049,7 @@ class ManageValidate(AdminScriptTestCase):
         self.write_settings('settings.py',
             apps=['admin_scripts.app_with_import',
                   'django.contrib.comments',
-                  'django.contrib.auth',
+                  'django.contrib.auth.app.AuthApp',
                   'django.contrib.contenttypes',
                   'django.contrib.sites'],
             sdict={'DEBUG': True})

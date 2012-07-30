@@ -139,12 +139,14 @@ class TestTransactionClosing(TransactionTestCase):
         transactions were only marked "dirty" by the save() function after it successfully
         wrote the object to the database.
         """
-        from django.contrib.auth.models import User
+        # from django.contrib.auth.models import User
+        from django.apps import app_cache
+        userobj = app_cache.apps.auth.get_user_model()
 
         @transaction.commit_on_success
         def create_system_user():
             "Create a user in a transaction"
-            user = User.objects.create_user(username='system', password='iamr00t', email='root@SITENAME.com')
+            user = userobj.objects.create_user(username='system', password='iamr00t', email='root@SITENAME.com')
             # Redundant, just makes sure the user id was read back from DB
             Mod.objects.create(fld=user.id)
 

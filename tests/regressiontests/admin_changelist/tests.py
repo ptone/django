@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import datetime
 
+from django.apps import app_cache
 from django.contrib import admin
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.contrib.admin.views.main import ChangeList, SEARCH_VAR, ALL_VAR
@@ -21,6 +22,7 @@ from .models import (Event, Child, Parent, Genre, Band, Musician, Group,
     Quartet, Membership, ChordsMusician, ChordsBand, Invitation, Swallow,
     UnorderedObject, OrderedObject)
 
+userobj = app_cache.apps.auth.get_user_model()
 
 class ChangeListTests(TestCase):
     urls = "regressiontests.admin_changelist.urls"
@@ -29,7 +31,7 @@ class ChangeListTests(TestCase):
         self.factory = RequestFactory()
 
     def _create_superuser(self, username):
-        return User.objects.create(username=username, is_superuser=True)
+        return userobj.objects.create(username=username, is_superuser=True)
 
     def _mocked_authenticated_request(self, url, user):
         request = self.factory.get(url)

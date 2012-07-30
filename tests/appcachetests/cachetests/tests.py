@@ -658,6 +658,9 @@ class GetAppInstanceTests(AppCacheTestCase):
                 'db_prefix': 'foobar_prefix',
                 'eggs': 'eggs',
             }),
+            ('django.contrib.auth.app.AuthApp', {
+                'user_model': 'django.contrib.auth.tests.custom_user.CustomUser',
+                }),
         )
         app_cache._populate()
         admin = app_cache.get_app_instance('admin')
