@@ -141,12 +141,12 @@ class TestTransactionClosing(TransactionTestCase):
         """
         # from django.contrib.auth.models import User
         from django.apps import app_cache
-        userobj = app_cache.apps.auth.get_user_model()
+        UserObj = app_cache.apps.auth.get_user_model()
 
         @transaction.commit_on_success
         def create_system_user():
             "Create a user in a transaction"
-            user = userobj.objects.create_user(username='system', password='iamr00t', email='root@SITENAME.com')
+            user = UserObj.objects.create_user(username='system', password='iamr00t', email='root@SITENAME.com')
             # Redundant, just makes sure the user id was read back from DB
             Mod.objects.create(fld=user.id)
 
@@ -165,7 +165,7 @@ class TestTransactionClosing(TransactionTestCase):
         try:
             # Try to read the database. If the last transaction was indeed closed,
             # this should cause no problems
-            _ = User.objects.all()[0]
+            _ = UserObj.objects.all()[0]
         except:
             self.fail("A transaction consisting of a failed operation was not closed.")
 
