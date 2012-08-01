@@ -463,6 +463,10 @@ class AppCache(object):
             if app._meta.models_module is None:
                 app._meta.models_module = sys.modules[model.__module__]
             app._meta.models[model_name] = model
+            # for installed apps this is updated again in the app's
+            # register_models method - but for raw imported models
+            # it is not
+            model._meta.app = app
 
         self._get_models_cache.clear()
 
