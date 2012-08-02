@@ -410,6 +410,17 @@ class GetModelTests(AppCacheTestCase):
         fetched_model = model_app.get_model('person')
         self.assertEquals(fetched_model, Person)
 
+    def test_uninstalled_model_attr(self):
+        app_cache._populate()
+        from model_app.models import Person
+        self.assertFalse(Person._meta.installed)
+
+    def test_installed_model_attr(self):
+        settings.INSTALLED_APPS = ('appcachetests.cachetests.model_app',)
+        app_cache._populate()
+        from model_app.models import Person
+        self.assertTrue(Person._meta.installed)
+
 class LoadAppTests(AppCacheTestCase):
     """Tests for the load_app function"""
 
