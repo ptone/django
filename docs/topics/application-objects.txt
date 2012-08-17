@@ -127,7 +127,8 @@ order of apps as listed in ``INSTALLED_APPS``.
 Accessing application instances
 ===============================
 
-subject to change - use the app_cache
+Django's application cache is populated early, and should be available from
+most end user code - even in models.
 
 Application loading signals
 ===========================
