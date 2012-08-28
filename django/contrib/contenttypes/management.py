@@ -1,4 +1,5 @@
 from django.apps import app_cache
+from django.db.models import signals
 from django.contrib.contenttypes.models import ContentType
 from django.utils.encoding import smart_text
 from django.utils import six

@@ -38,7 +38,7 @@ class Command(NoArgsCommand):
         for app in app_cache.loaded_apps:
             try:
                 import_module('.management', app._meta.name)
-            except ImportError, exc:
+            except ImportError as exc:
                 # This is slightly hackish. We want to ignore ImportErrors
                 # if the "management" module itself is missing -- but we don't
                 # want to ignore the exception if the management module exists
