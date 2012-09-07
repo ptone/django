@@ -1,75 +1,53 @@
 import re
 import sys
 
-from django.apps.options import AppOptions, DEFAULT_NAMES
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
-from django.utils import six
+from django.utils.text import get_verbose_name
 
 module_name_re = re.compile(r'_([a-z])')
 
 
-class AppBase(type):
-    """
-    Metaclass for all apps.
-    """
-    def __new__(cls, name, bases, attrs):
-        super_new = super(AppBase, cls).__new__
-        # six.with_metaclass() inserts an extra class called 'NewBase' in the
-        # inheritance tree: Model -> NewBase -> object. Ignore this class.
-        parents = [b for b in bases if isinstance(b, AppBase) and
-                not (b.__name__ == 'NewBase' and b.__mro__ == (b, object))]
-        if not parents:
-            # If this isn't a subclass of App, don't do anything special.
-            return super_new(cls, name, bases, attrs)
-        parents = [b for b in bases if isinstance(b, AppBase)]
-        if not parents:
-            # If this isn't a subclass of App, don't do anything special.
-            return super_new(cls, name, bases, attrs)
-        module = attrs.pop('__module__', None)
-        new_class = super_new(cls, name, bases, {'__module__': module})
-        attr_meta = attrs.pop('Meta', None)
-        if not attr_meta:
-            meta = getattr(new_class, 'Meta', None)
-        else:
-            meta = attr_meta
-        app_name = attrs.pop('_name', None)
-        if app_name is None:
-            # Figure out the app_name by looking one level up.
-            # For 'django.contrib.sites.app', this would be
-            # 'django.contrib.sites'
-            app_module = sys.modules[new_class.__module__]
-            app_name = app_module.__name__.rsplit('.', 1)[0]
-        new_class.add_to_class('_meta', AppOptions(app_name, meta))
-        # For easier Meta inheritance
-        new_class.add_to_class('Meta', attr_meta)
-        # Add all remaining attributes to the class.
-        for obj_name, obj in attrs.items():
-            new_class.add_to_class(obj_name, obj)
-        return new_class
 
-    def add_to_class(cls, name, value):
-        if hasattr(value, 'contribute_to_class'):
-            value.contribute_to_class(cls, name)
-        else:
-            setattr(cls, name, value)
-
-
-class App(six.with_metaclass(AppBase, object)):
+class App(object):
     """
-    The base app class to be subclassed for own uses.
+    The base app class to be subclassed.
     """
 
     def __init__(self, **options):
-        for key, value in options.items():
-            if key in DEFAULT_NAMES:
-                setattr(self._meta, key, value)
-            else:
-                setattr(self, key, value)
+
+        # set to true when the app in instantiated by app_cache._populate
+        # but remains false for naive apps
+        self.installed = False
+
+        # TODO should this happen after the __dict__update below?
+        # _name is an option passed in from the factory class methods
+        self.name = options.get('_name', self.__module__)
+
+        # TODO is this really still needed?
+        if self.name in sys.modules:
+            self.path = sys.modules[self.name].__file__
+        else:
+            self.path = ''
+
+        # TODO - think this can go away as an attribute
+        # can just be retrieved from the class if needed
+        self.module = None
+
+        if '.' in self.name:
+            self.label = self.name.split('.')[-1]
+        else:
+            self.label = self.name
+
+        self.models_path = '%s.models' % self.name
+        # update attributes on self with kwarg like configuration
+        # from INSTALLED_APPS
+        self.__dict__.update(options)
+        self.verbose_name = get_verbose_name(self.label),
 
     def __repr__(self):
-        return '<App: %s>' % self._meta.name
+        return '<App: %s>' % self.name
 
     @classmethod
     def from_name(cls, name):
@@ -87,35 +65,36 @@ class App(six.with_metaclass(AppBase, object)):
                 cls_name[1:], (cls,), {'_name': label})
 
     def relocate_models(self):
-        if not self._meta.installed:
+        if not self.installed:
+            # we are a naive app, and don't relocate models
             return
         from django.apps import app_cache
         # make sure models registered at import time are assigned to the app
         same_label_apps = [app for app in app_cache.loaded_apps if
-                app._meta.label == self._meta.label]
+                app.label == self.label]
         for app in same_label_apps:
             if app != self:
-                if app._meta.installed:
+                if app.installed:
                     raise ImproperlyConfigured(
                         'Multiple apps with the label %s can not be loaded' %
-                        app._meta.label)
+                        app.label)
                 else:
-                    self._meta.models.update(app._meta.models)
-                    if app._meta.models_module:
-                        self._meta.models_module = app._meta.models_module
+                    self.models.update(app.models)
+                    if app.models_module:
+                        self.models_module = app.models_module
                     app_cache._unload_app(app)
 
 
     def register_models(self):
         from django.apps import app_cache
-        if not self._meta.models_module:
+        if not self.models_module:
             try:
-                models = import_module(self._meta.models_path)
-                self._meta.models_module = models
+                models = import_module(self.models_path)
+                self.models_module = models
             except ImportError:
                 # If the app doesn't have a models module, we can just ignore the
                 # ImportError and return no models for it.
-                if not module_has_submodule(self._meta.module, 'models'):
+                if not module_has_submodule(self.__module__, 'models'):
                     return None
                 # But if the app does have a models module, we need to figure out
                 # whether to suppress or propagate the error. If can_postpone is
@@ -126,18 +105,23 @@ class App(six.with_metaclass(AppBase, object)):
                 # then it's time to raise the ImportError.
                 else:
                     raise
-        for model in self._meta.models.values():
+        for model in self.models.values():
             # update the models reference to the app it is associated with
+            # TODO remove the backref - and associated bits in model options
             model._meta.app = self
-            # update the db_table of the model if set by the app
-            if (self._meta.label != self._meta.db_prefix and
-                    model._meta.db_table.startswith(self._meta.label)):
-                # this should be safe as it should always have been called
-                # early on before any syncdb
-                model._meta.db_table = model._meta.db_table.replace(
-                        self._meta.label,
-                        self._meta.db_prefix)
+
+            # TODO this commented out block should be removed
+            # we let models always use the standard way of determining db_table
+            ## update the db_table of the model if set by the app
+            # if (self._meta.label != self._meta.db_prefix and
+                    # model._meta.db_table.startswith(self._meta.label)):
+                ## this should be safe as it should always have been called
+                ## early on before any syncdb
+                # model._meta.db_table = model._meta.db_table.replace(
+                        # self._meta.label,
+                        # self._meta.db_prefix)
+
         app_cache._get_models_cache.clear()
 
     def get_model(self, name):
-        return self._meta.models.get(name, None)
+        return self.models.get(name, None)
