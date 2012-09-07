@@ -1022,28 +1022,20 @@ class ManageValidate(AdminScriptTestCase):
     def test_broken_app(self):
         "manage.py validate reports an ImportError if an app's models.py raises one on import"
         self.write_settings('settings.py', apps=['admin_scripts.broken_app'])
-        # from django.apps import app_cache
-        # TODO
-        # the import error now happens at the time the app_cache is populated
-        # this is not easy to do per test case in the main test suite as changing
-        # installed apps mid run mess up later tests
-        # because the test_suite dynamically loads this app there is no
-        # chance for the admin script call to run
-        # self.assertRaises(ImportError, app_cache.load_app,
-                # 'regressiontests.admin_scripts.broken_app', installed=True)
+        args = ['validate']
+        out, err = self.run_manage(args)
+        self.assertNoOutput(out)
+        self.assertOutput(err, 'ImportError')
 
     def test_complex_app(self):
         "manage.py validate does not raise an ImportError validating a complex app with nested calls to load_app"
         self.write_settings('settings.py',
             apps=['admin_scripts.complex_app', 'admin_scripts.simple_app'],
             sdict={'DEBUG': True})
-        # TODO
-        # this now does raise an importerror - because the app cache populates
-        # early in any command run
-        # args = ['validate']
-        # out, err = self.run_manage(args)
-        # self.assertNoOutput(err)
-        # self.assertOutput(out, '0 errors found')
+        args = ['validate']
+        out, err = self.run_manage(args)
+        self.assertNoOutput(err)
+        self.assertOutput(out, '0 errors found')
 
     def test_app_with_import(self):
         "manage.py validate does not raise errors when an app imports a base class that itself has an abstract base"

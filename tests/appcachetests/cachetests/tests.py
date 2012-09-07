@@ -834,16 +834,9 @@ class EggLoadingTests(AppCacheTestCase):
         egg_name = '%s/brokenapp.egg' % self.egg_dir
         sys.path.append(egg_name)
         settings.INSTALLED_APPS = ('broken_app',)
-        self.assertRaises(ImportError, app_cache._populate)
-        # TODO this will require a separate tests - as once populate runs
-        # it can't be run a second time in a single test, and load() does
-        # not trigger imports by itself
-        # try:
-            # app_cache.load_app('broken_app')
-        # except ImportError, e:
-            # # Make sure the message is indicating the actual
-            # # problem in the broken app.
-            # self.assertTrue("modelz" in e.args[0])
+        with self.assertRaises(ImportError) as cm:
+            app_cache._populate()
+        self.assertTrue("modelz" in str(cm.exception))
 
 if __name__ == '__main__':
     unittest.main()
