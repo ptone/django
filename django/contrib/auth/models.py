@@ -19,6 +19,7 @@ from django.contrib.auth.hashers import (
     check_password, make_password, is_password_usable, UNUSABLE_PASSWORD)
 from django.contrib.auth.signals import user_logged_in
 from django.contrib.contenttypes.models import ContentType
+from django.utils.encoding import python_2_unicode_compatible
 
 
 def update_last_login(sender, user, **kwargs):
@@ -44,6 +45,7 @@ class PermissionManager(models.Manager):
         )
 
 
+@python_2_unicode_compatible
 class Permission(models.Model):
     """
     The permissions system provides a way to assign permissions to specific
@@ -79,7 +81,7 @@ class Permission(models.Model):
         ordering = ('content_type__app_label', 'content_type__model',
                     'codename')
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s | %s | %s" % (
             six.text_type(self.content_type.app_label),
             six.text_type(self.content_type),
@@ -97,7 +99,7 @@ class GroupManager(models.Manager):
     def get_by_natural_key(self, name):
         return self.get(name=name)
 
-
+@python_2_unicode_compatible
 class Group(models.Model):
     """
     Groups are a generic way of categorizing users to apply permissions, or
@@ -125,7 +127,7 @@ class Group(models.Model):
         verbose_name = _('group')
         verbose_name_plural = _('groups')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def natural_key(self):
@@ -190,6 +192,21 @@ class UserManager(BaseUserManager):
         u.is_superuser = True
         u.save(using=self._db)
         return u
+
+    def make_random_password(self, length=10,
+                             allowed_chars='abcdefghjkmnpqrstuvwxyz'
+                                           'ABCDEFGHJKLMNPQRSTUVWXYZ'
+                                           '23456789'):
+        """
+        Generates a random password with the given length and given
+        allowed_chars. Note that the default value of allowed_chars does not
+        have "I" or "O" or letters and digits that look similar -- just to
+        avoid confusion.
+        """
+        return get_random_string(length, allowed_chars)
+
+    def get_by_natural_key(self, username):
+        return self.get(username=username)
 
 
 # A few helper functions for common logic between User and AnonymousUser.
@@ -288,6 +305,8 @@ class User(AbstractBaseUser):
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=30, blank=True)
     email = models.EmailField(_('email address'), blank=True)
+    email = models.EmailField(_('e-mail address'), blank=True)
+    password = models.CharField(_('password'), max_length=128)
     is_staff = models.BooleanField(_('staff status'), default=False,
         help_text=_('Designates whether the user can log into this admin '
                     'site.'))
@@ -297,6 +316,7 @@ class User(AbstractBaseUser):
     is_superuser = models.BooleanField(_('superuser status'), default=False,
         help_text=_('Designates that this user has all permissions without '
                     'explicitly assigning them.'))
+    last_login = models.DateTimeField(_('last login'), default=timezone.now)
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
     groups = models.ManyToManyField(Group, verbose_name=_('groups'),
         blank=True, help_text=_('The groups this user belongs to. A user will '
@@ -311,9 +331,8 @@ class User(AbstractBaseUser):
     class Meta:
         verbose_name = _('user')
         verbose_name_plural = _('users')
-        swappable = 'AUTH_USER_MODEL'
 
-    def __unicode__(self):
+    def __str__(self):
         return self.username
 
     def natural_key(self):
@@ -321,6 +340,20 @@ class User(AbstractBaseUser):
 
     def get_absolute_url(self):
         return "/users/%s/" % urlquote(self.username)
+
+    def is_anonymous(self):
+        """
+        Always returns False. This is a way of comparing User objects to
+        anonymous users.
+        """
+        return False
+
+    def is_authenticated(self):
+        """
+        Always return True. This is a way to tell if the user has been
+        authenticated in templates.
+        """
+        return True
 
     def get_full_name(self):
         """
@@ -332,6 +365,25 @@ class User(AbstractBaseUser):
     def get_short_name(self):
         "Returns the short name for the user."
         return self.first_name
+    def set_password(self, raw_password):
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        """
+        Returns a boolean of whether the raw_password was correct. Handles
+        hashing formats behind the scenes.
+        """
+        def setter(raw_password):
+            self.set_password(raw_password)
+            self.save(update_fields=["password"])
+        return check_password(raw_password, self.password, setter)
+
+    def set_unusable_password(self):
+        # Sets a value that will never be a valid hash
+        self.password = make_password(None)
+
+    def has_usable_password(self):
+        return is_password_usable(self.password)
 
     def get_group_permissions(self, obj=None):
         """
@@ -427,6 +479,7 @@ class User(AbstractBaseUser):
         return self._profile_cache
 
 
+@python_2_unicode_compatible
 class AnonymousUser(object):
     id = None
     pk = None
@@ -440,11 +493,8 @@ class AnonymousUser(object):
     def __init__(self):
         pass
 
-    def __unicode__(self):
-        return 'AnonymousUser'
-
     def __str__(self):
-        return six.text_type(self).encode('utf-8')
+        return 'AnonymousUser'
 
     def __eq__(self, other):
         return isinstance(other, self.__class__)
@@ -453,7 +503,7 @@ class AnonymousUser(object):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return 1  # instances always return the same hash value
+        return 1 # instances always return the same hash value
 
     def save(self):
         raise NotImplementedError

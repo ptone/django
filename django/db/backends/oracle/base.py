@@ -10,8 +10,6 @@ import decimal
 import sys
 import warnings
 
-from django.utils import six
-
 def _setup_environment(environ):
     import platform
     # Cygwin requires some special voodoo to set the environment variables
@@ -53,7 +51,7 @@ from django.db.backends.signals import connection_created
 from django.db.backends.oracle.client import DatabaseClient
 from django.db.backends.oracle.creation import DatabaseCreation
 from django.db.backends.oracle.introspection import DatabaseIntrospection
-from django.utils.encoding import smart_str, force_unicode
+from django.utils.encoding import smart_bytes, force_text
 from django.utils import six
 from django.utils import timezone
 
@@ -64,9 +62,9 @@ IntegrityError = Database.IntegrityError
 # Check whether cx_Oracle was compiled with the WITH_UNICODE option.  This will
 # also be True in Python 3.0.
 if int(Database.version.split('.', 1)[0]) >= 5 and not hasattr(Database, 'UNICODE'):
-    convert_unicode = force_unicode
+    convert_unicode = force_text
 else:
-    convert_unicode = smart_str
+    convert_unicode = smart_bytes
 
 
 class DatabaseFeatures(BaseDatabaseFeatures):
@@ -162,7 +160,7 @@ WHEN (new.%(col_name)s IS NULL)
         if isinstance(value, Database.LOB):
             value = value.read()
             if field and field.get_internal_type() == 'TextField':
-                value = force_unicode(value)
+                value = force_text(value)
 
         # Oracle stores empty strings as null. We need to undo this in
         # order to adhere to the Django convention of using the empty
@@ -221,7 +219,10 @@ WHEN (new.%(col_name)s IS NULL)
     def last_executed_query(self, cursor, sql, params):
         # http://cx-oracle.sourceforge.net/html/cursor.html#Cursor.statement
         # The DB API definition does not define this attribute.
-        return cursor.statement.decode("utf-8")
+        if six.PY3:
+            return cursor.statement
+        else:
+            return cursor.statement.decode("utf-8")
 
     def last_insert_id(self, cursor, table_name, pk_name):
         sq_name = self._get_sequence_name(table_name)
@@ -245,7 +246,7 @@ WHEN (new.%(col_name)s IS NULL)
     def process_clob(self, value):
         if value is None:
             return ''
-        return force_unicode(value.read())
+        return force_text(value.read())
 
     def quote_name(self, name):
         # SQL92 requires delimited (quoted) names to be case-sensitive.  When
@@ -594,10 +595,16 @@ class OracleParam(object):
                 param = timezone.make_aware(param, default_timezone)
             param = param.astimezone(timezone.utc).replace(tzinfo=None)
 
+        # Oracle doesn't recognize True and False correctly in Python 3.
+        # The conversion done below works both in 2 and 3.
+        if param is True:
+            param = "1"
+        elif param is False:
+            param = "0"
         if hasattr(param, 'bind_parameter'):
-            self.smart_str = param.bind_parameter(cursor)
+            self.smart_bytes = param.bind_parameter(cursor)
         else:
-            self.smart_str = convert_unicode(param, cursor.charset,
+            self.smart_bytes = convert_unicode(param, cursor.charset,
                                              strings_only)
         if hasattr(param, 'input_size'):
             # If parameter has `input_size` attribute, use that.
@@ -676,7 +683,7 @@ class FormatStylePlaceholderCursor(object):
         self.setinputsizes(*sizes)
 
     def _param_generator(self, params):
-        return [p.smart_str for p in params]
+        return [p.smart_bytes for p in params]
 
     def execute(self, query, params=None):
         if params is None:
@@ -774,8 +781,10 @@ class CursorIterator(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         return _rowfactory(next(self.iter), self.cursor)
+
+    next = __next__             # Python 2 compatibility
 
 
 def _rowfactory(row, cursor):
@@ -831,7 +840,7 @@ def to_unicode(s):
     unchanged).
     """
     if isinstance(s, six.string_types):
-        return force_unicode(s)
+        return force_text(s)
     return s
 
 

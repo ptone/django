@@ -113,6 +113,7 @@ class _MovedItems(types.ModuleType):
 _moved_attributes = [
     MovedAttribute("cStringIO", "cStringIO", "io", "StringIO"),
     MovedAttribute("filter", "itertools", "builtins", "ifilter", "filter"),
+    MovedAttribute("input", "__builtin__", "builtins", "raw_input", "input"),
     MovedAttribute("map", "itertools", "builtins", "imap", "map"),
     MovedAttribute("reload_module", "__builtin__", "imp", "reload"),
     MovedAttribute("reduce", "__builtin__", "functools"),
@@ -364,4 +365,6 @@ def iterlists(d):
     """Return an iterator over the values of a MultiValueDict."""
     return getattr(d, _iterlists)()
 
+
 add_move(MovedModule("_dummy_thread", "dummy_thread"))
+add_move(MovedModule("_thread", "thread"))

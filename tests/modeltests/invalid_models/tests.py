@@ -1,10 +1,10 @@
 import sys
-from io import BytesIO
 
 from django.apps import app_cache
 from django.core.management.validation import get_validation_errors
 from django.db.models.signals import post_syncdb
 from django.utils import unittest
+from django.utils.six import StringIO
 from django.test.utils import override_settings
 
 
@@ -20,7 +20,7 @@ class InvalidModelTestCase(unittest.TestCase):
         app = app_cache.get_app_instance('invalid_models_app')
         app.register_models()
         self.old_stdout = sys.stdout
-        self.stdout = BytesIO()
+        self.stdout = StringIO()
         sys.stdout = self.stdout
         # self.sync_receivers = post_syncdb.receivers
         # post_syncdb.receivers = []

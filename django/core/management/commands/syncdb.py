@@ -38,7 +38,7 @@ class Command(NoArgsCommand):
         for app in app_cache.loaded_apps:
             try:
                 import_module('.management', app._meta.name)
-            except ImportError, exc:
+            except ImportError as exc:
                 # This is slightly hackish. We want to ignore ImportErrors
                 # if the "management" module itself is missing -- but we don't
                 # want to ignore the exception if the management module exists
@@ -78,7 +78,7 @@ class Command(NoArgsCommand):
                 (opts.auto_created and converter(opts.auto_created._meta.db_table) in tables))
 
         manifest = SortedDict(
-            (app_name, filter(model_installed, model_list))
+            (app_name, list(filter(model_installed, model_list)))
             for app_name, model_list in all_models
         )
 

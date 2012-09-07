@@ -160,10 +160,7 @@ class UserSettingsHolder(BaseSettings):
         return getattr(self.default_settings, name)
 
     def __dir__(self):
-        return self.__dict__.keys() + dir(self.default_settings)
-
-    # For Python < 2.6:
-    __members__ = property(lambda self: self.__dir__())
+        return list(self.__dict__) + dir(self.default_settings)
 
 settings = LazySettings()
 

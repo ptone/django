@@ -5,6 +5,7 @@ from django.apps.options import AppOptions, DEFAULT_NAMES
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
+from django.utils import six
 
 module_name_re = re.compile(r'_([a-z])')
 
@@ -15,6 +16,13 @@ class AppBase(type):
     """
     def __new__(cls, name, bases, attrs):
         super_new = super(AppBase, cls).__new__
+        # six.with_metaclass() inserts an extra class called 'NewBase' in the
+        # inheritance tree: Model -> NewBase -> object. Ignore this class.
+        parents = [b for b in bases if isinstance(b, AppBase) and
+                not (b.__name__ == 'NewBase' and b.__mro__ == (b, object))]
+        if not parents:
+            # If this isn't a subclass of App, don't do anything special.
+            return super_new(cls, name, bases, attrs)
         parents = [b for b in bases if isinstance(b, AppBase)]
         if not parents:
             # If this isn't a subclass of App, don't do anything special.
@@ -48,11 +56,10 @@ class AppBase(type):
             setattr(cls, name, value)
 
 
-class App(object):
+class App(six.with_metaclass(AppBase, object)):
     """
     The base app class to be subclassed for own uses.
     """
-    __metaclass__ = AppBase
 
     def __init__(self, **options):
         for key, value in options.items():

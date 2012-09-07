@@ -1,7 +1,7 @@
 from django.db.utils import DatabaseError
 
 try:
-    import thread
+    from django.utils.six.moves import _thread as thread
 except ImportError:
     from django.utils.six.moves import _dummy_thread as thread
 from contextlib import contextmanager
@@ -47,6 +47,8 @@ class BaseDatabaseWrapper(object):
 
     def __ne__(self, other):
         return not self == other
+
+    __hash__ = object.__hash__
 
     def _commit(self):
         if self.connection is not None:
@@ -608,16 +610,16 @@ class BaseDatabaseOperations(object):
         exists for database backends to provide a better implementation
         according to their own quoting schemes.
         """
-        from django.utils.encoding import smart_unicode, force_unicode
+        from django.utils.encoding import smart_text, force_text
 
         # Convert params to contain Unicode values.
-        to_unicode = lambda s: force_unicode(s, strings_only=True, errors='replace')
+        to_unicode = lambda s: force_text(s, strings_only=True, errors='replace')
         if isinstance(params, (list, tuple)):
             u_params = tuple([to_unicode(val) for val in params])
         else:
             u_params = dict([(to_unicode(k), to_unicode(v)) for k, v in params.items()])
 
-        return smart_unicode(sql) % u_params
+        return smart_text(sql) % u_params
 
     def last_insert_id(self, cursor, table_name, pk_name):
         """
@@ -801,8 +803,8 @@ class BaseDatabaseOperations(object):
 
     def prep_for_like_query(self, x):
         """Prepares a value for use in a LIKE query."""
-        from django.utils.encoding import smart_unicode
-        return smart_unicode(x).replace("\\", "\\\\").replace("%", "\%").replace("_", "\_")
+        from django.utils.encoding import smart_text
+        return smart_text(x).replace("\\", "\\\\").replace("%", "\%").replace("_", "\_")
 
     # Same as prep_for_like_query(), but called for "iexact" matches, which
     # need not necessarily be implemented using "LIKE" in the backend.
@@ -879,19 +881,21 @@ class BaseDatabaseOperations(object):
         return self.year_lookup_bounds(value)
 
     def convert_values(self, value, field):
-        """Coerce the value returned by the database backend into a consistent type that
-        is compatible with the field type.
+        """
+        Coerce the value returned by the database backend into a consistent type
+        that is compatible with the field type.
         """
         internal_type = field.get_internal_type()
         if internal_type == 'DecimalField':
             return value
-        elif internal_type and internal_type.endswith('IntegerField') or internal_type == 'AutoField':
+        elif internal_type == 'FloatField':
+            return float(value)
+        elif (internal_type and (internal_type.endswith('IntegerField')
+                                 or internal_type == 'AutoField')):
             return int(value)
         elif internal_type in ('DateField', 'DateTimeField', 'TimeField'):
             return value
-        # No field, or the field isn't known to be a decimal or integer
-        # Default to a float
-        return float(value)
+        return value
 
     def check_aggregate_support(self, aggregate_func):
         """Check that the backend supports the provided aggregate
@@ -990,7 +994,7 @@ class BaseDatabaseIntrospection(object):
             for model in models.get_models(app):
                 if router.allow_syncdb(self.connection.alias, model):
                     all_models.append(model)
-        tables = map(self.table_name_converter, tables)
+        tables = list(map(self.table_name_converter, tables))
         return set([
             m for m in all_models
             if self.table_name_converter(m._meta.db_table) in tables

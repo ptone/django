@@ -6,9 +6,9 @@ from django.contrib.gis.db.models.fields import get_srid_info, PointField, LineS
 from django.contrib.gis.db.models.sql import AreaField, DistanceField, GeomField, GeoQuery
 from django.contrib.gis.geometry.backend import Geometry
 from django.contrib.gis.measure import Area, Distance
-from django.utils import six
 
 from django.utils import six
+
 
 class GeoQuerySet(QuerySet):
     "The Geographic QuerySet."
@@ -25,7 +25,7 @@ class GeoQuerySet(QuerySet):
         flat = kwargs.pop('flat', False)
         if kwargs:
             raise TypeError('Unexpected keyword arguments to values_list: %s'
-                    % (kwargs.keys(),))
+                    % (list(kwargs),))
         if flat and len(fields) > 1:
             raise TypeError("'flat' is not valid when values_list is called with more than one field.")
         return self._clone(klass=GeoValuesListQuerySet, setup=True, flat=flat,
@@ -531,7 +531,7 @@ class GeoQuerySet(QuerySet):
         if settings.get('setup', True):
             default_args, geo_field = self._spatial_setup(att, desc=settings['desc'], field_name=field_name,
                                                           geo_field_type=settings.get('geo_field_type', None))
-            for k, v in default_args.iteritems(): settings['procedure_args'].setdefault(k, v)
+            for k, v in six.iteritems(default_args): settings['procedure_args'].setdefault(k, v)
         else:
             geo_field = settings['geo_field']
 

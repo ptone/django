@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import calendar
 import datetime
 import re
@@ -13,7 +15,7 @@ except ImportError:     # Python 2
 from email.utils import formatdate
 
 from django.utils.datastructures import MultiValueDict
-from django.utils.encoding import smart_str, force_unicode
+from django.utils.encoding import force_text, smart_str
 from django.utils.functional import allow_lazy
 from django.utils import six
 
@@ -37,7 +39,7 @@ def urlquote(url, safe='/'):
     can safely be used as part of an argument to a subsequent iri_to_uri() call
     without double-quoting occurring.
     """
-    return force_unicode(urllib_parse.quote(smart_str(url), smart_str(safe)))
+    return force_text(urllib_parse.quote(smart_str(url), smart_str(safe)))
 urlquote = allow_lazy(urlquote, six.text_type)
 
 def urlquote_plus(url, safe=''):
@@ -47,7 +49,7 @@ def urlquote_plus(url, safe=''):
     returned string can safely be used as part of an argument to a subsequent
     iri_to_uri() call without double-quoting occurring.
     """
-    return force_unicode(urllib_parse.quote_plus(smart_str(url), smart_str(safe)))
+    return force_text(urllib_parse.quote_plus(smart_str(url), smart_str(safe)))
 urlquote_plus = allow_lazy(urlquote_plus, six.text_type)
 
 def urlunquote(quoted_url):
@@ -55,7 +57,7 @@ def urlunquote(quoted_url):
     A wrapper for Python's urllib.unquote() function that can operate on
     the result of django.utils.http.urlquote().
     """
-    return force_unicode(urllib_parse.unquote(smart_str(quoted_url)))
+    return force_text(urllib_parse.unquote(smart_str(quoted_url)))
 urlunquote = allow_lazy(urlunquote, six.text_type)
 
 def urlunquote_plus(quoted_url):
@@ -63,7 +65,7 @@ def urlunquote_plus(quoted_url):
     A wrapper for Python's urllib.unquote_plus() function that can operate on
     the result of django.utils.http.urlquote_plus().
     """
-    return force_unicode(urllib_parse.unquote_plus(smart_str(quoted_url)))
+    return force_text(urllib_parse.unquote_plus(smart_str(quoted_url)))
 urlunquote_plus = allow_lazy(urlunquote_plus, six.text_type)
 
 def urlencode(query, doseq=0):
@@ -167,8 +169,9 @@ def base36_to_int(s):
     if len(s) > 13:
         raise ValueError("Base36 input too large")
     value = int(s, 36)
-    # ... then do a final check that the value will fit into an int.
-    if value > sys.maxint:
+    # ... then do a final check that the value will fit into an int to avoid
+    # returning a long (#15067). The long type was removed in Python 3.
+    if not six.PY3 and value > sys.maxint:
         raise ValueError("Base36 input too large")
     return value
 
@@ -178,8 +181,13 @@ def int_to_base36(i):
     """
     digits = "0123456789abcdefghijklmnopqrstuvwxyz"
     factor = 0
-    if not 0 <= i <= sys.maxint:
-        raise ValueError("Base36 conversion input too large or incorrect type.")
+    if i < 0:
+        raise ValueError("Negative base36 conversion input.")
+    if not six.PY3:
+        if not isinstance(i, six.integer_types):
+            raise TypeError("Non-integer base36 conversion input.")
+        if i > sys.maxint:
+            raise ValueError("Base36 conversion input too large.")
     # Find starting factor
     while True:
         factor += 1
@@ -205,7 +213,7 @@ def parse_etags(etag_str):
     if not etags:
         # etag_str has wrong format, treat it as an opaque string then
         return [etag_str]
-    etags = [e.decode('string_escape') for e in etags]
+    etags = [e.encode('ascii').decode('unicode_escape') for e in etags]
     return etags
 
 def quote_etag(etag):

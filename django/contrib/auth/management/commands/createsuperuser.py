@@ -12,6 +12,20 @@ from django.core import exceptions
 from django.core.management.base import BaseCommand, CommandError
 from django.db import DEFAULT_DB_ALIAS
 from django.utils.text import capfirst
+from django.utils.six.moves import input
+from django.utils.translation import ugettext as _
+
+RE_VALID_USERNAME = re.compile('[\w.@+-]+$')
+
+EMAIL_RE = re.compile(
+    r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"  # dot-atom
+    r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])*"' # quoted-string
+    r')@(?:[A-Z0-9-]+\.)+[A-Z]{2,6}$', re.IGNORECASE)  # domain
+
+
+def is_valid_email(value):
+    if not EMAIL_RE.search(value):
+        raise exceptions.ValidationError(_('Enter a valid e-mail address.'))
 
 
 class Command(BaseCommand):
@@ -78,8 +92,8 @@ class Command(BaseCommand):
                         input_msg = capfirst(username_field.verbose_name)
                         if default_username:
                             input_msg += ' (leave blank to use %r)' % default_username
-                        raw_value = raw_input(input_msg + ': ')
-                    if default_username and raw_value == '':
+                        username = input(input_msg + ': ')
+                    if default_username and username == '':
                         username = default_username
                     try:
                         username = username_field.clean(raw_value, None)
@@ -101,7 +115,7 @@ class Command(BaseCommand):
                     field = UserModel._meta.get_field(field_name)
                     other_data[field_name] = None
                     while other_data[field_name] is None:
-                        raw_value = raw_input(capfirst(field.verbose_name + ': '))
+                        raw_value = input(capfirst(field.verbose_name + ': '))
                         try:
                             other_data[field_name] = field.clean(raw_value, None)
                         except exceptions.ValidationError, e:
