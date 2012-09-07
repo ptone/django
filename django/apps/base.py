@@ -137,18 +137,6 @@ class App(six.with_metaclass(AppBase, object)):
                 model._meta.db_table = model._meta.db_table.replace(
                         self._meta.label,
                         self._meta.db_prefix)
-
-        parents = [p for p in self.__class__.mro()
-                    if hasattr(p, '_meta')]
-        for parent in reversed(parents):
-            parent._meta.installed = self._meta.installed
-            parent_models = parent._meta.models
-            for model in parent_models.values():
-                pass
-                # TODO what really should these parents be set to here?
-                # model._meta.app_label = self._meta.label
-                # model._meta.app = self
-            self._meta.models.update(parent_models)
         app_cache._get_models_cache.clear()
 
     def get_model(self, name):
