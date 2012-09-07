@@ -287,6 +287,8 @@ class AppCache(object):
         """
         Returns the app instance that matches the given label.
         """
+        # we can't use an ordered dict here, because we allow duplicate
+        # app names transiently during app loading and model registration
         if app_label:
             for app in self.loaded_apps:
                 if app._meta.label == app_label:
@@ -475,9 +477,18 @@ class AppCache(object):
         Configures a namedtuple for easier access of loaded apps
         and their attributes
         """
+        self._populate()
         Apps = namedtuple(
                 'Apps', [app._meta.label for app in self.loaded_apps])
-        self.apps = Apps._make(self.loaded_apps)
+        self._apps = Apps._make(self.loaded_apps)
+
+    @property
+    def apps(self):
+        if not self._apps:
+            self._populate()
+            return self._apps
+        else:
+            return self._apps
 
     def _test_repair(self):
         """
