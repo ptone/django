@@ -3,7 +3,6 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.backends import RemoteUserBackend
 from django.contrib.auth.models import User, AnonymousUser
-from django.contrib.auth.models import User
 from django.contrib.auth.tests.utils import skipIfCustomUser
 from django.test import TestCase
 from django.utils import timezone
@@ -104,12 +103,9 @@ class RemoteUserTest(TestCase):
         the REMOTE_USER header disappears during the same browser session.
         """
         User.objects.create(username='knownuser')
-        User.objects.create(username='knownuser2')
-        num_users = User.objects.count()
         # Known user authenticates
         response = self.client.get('/remote_user/', REMOTE_USER=self.known_user)
         self.assertEqual(response.context['user'].username, 'knownuser')
-        self.assertEqual(User.objects.count(), num_users)
         # During the session, the REMOTE_USER header disappears. Should trigger logout.
         response = self.client.get('/remote_user/')
         self.assertEqual(type(response.context['user']), AnonymousUser)
