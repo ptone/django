@@ -88,3 +88,61 @@ class ExtensionUser(AbstractUser):
 
     class Meta:
         app_label = 'auth'
+
+
+class IsActiveTestUser1(AbstractBaseUser):
+    """
+    This test user class and derivatives test the default is_active behavior
+    """
+    username = models.CharField(max_length=30, unique=True)
+
+    objects = BaseUserManager()
+
+    USERNAME_FIELD = 'username'
+
+    class Meta:
+        app_label = 'auth'
+
+    # case 1: nothing
+    # the is_active attr is provided by AbstractBaseUser
+
+# case 2 - a field is explicitly provided - which overrides AbstractBaseUser
+# this is tested by using the standard User class
+
+
+class IsActiveTestUser3(AbstractBaseUser):
+    """
+    This test user class and derivatives test the default is_active behavior
+    """
+    username = models.CharField(max_length=30, unique=True)
+
+    objects = BaseUserManager()
+
+    USERNAME_FIELD = 'username'
+    # case 3 - a class attr
+    is_active = False
+
+    class Meta:
+        app_label = 'auth'
+
+
+class IsActiveTestUser4(AbstractBaseUser):
+    """
+    This test user class and derivatives test the default is_active behavior
+    """
+    username = models.CharField(max_length=30, unique=True)
+
+    objects = BaseUserManager()
+
+    USERNAME_FIELD = 'username'
+
+    class Meta:
+        app_label = 'auth'
+
+    # class 4 an inst attr
+    # this one is pretty unusual, and we need to use objects's __setattr__
+    # to bypass our special __setattr__ on AbstractBaseUser - but once done
+    # changes to it should behave normally
+    def __init__(self, *args, **kwargs):
+        super(IsActiveTestUser4, self).__init__(*args, **kwargs)
+        super(AbstractBaseUser, self).__setattr__('is_active', False)

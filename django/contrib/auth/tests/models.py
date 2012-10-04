@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import (Group, User, SiteProfileNotAvailable,
     UserManager)
 from django.contrib.auth.tests.utils import skipIfCustomUser
@@ -98,3 +99,64 @@ class UserManagerTestCase(TestCase):
         self.assertRaisesMessage(ValueError,
                                  'The given username must be set',
                                   User.objects.create_user, username='')
+
+class IsActiveTestCase(TestCase):
+    """
+    Tests the behavior of the guaranteed is_active attribute
+    """
+
+    def test_builtin_user_isactive(self):
+        user = User.objects.create(username='foo', email='foo@bar.com')
+        # is_active is true by default
+        self.assertTrue(user.is_active)
+        user.is_active = False
+        user.save()
+        user_fetched = User.objects.get(pk=user.pk)
+        # the is_active flag is saved
+        self.assertFalse(user_fetched.is_active)
+
+    @override_settings(AUTH_USER_MODEL='auth.IsActiveTestUser1')
+    def test_is_active_field_default(self):
+        """
+        tests that the default value for is_active is provided
+        """
+        UserModel = get_user_model()
+        user = UserModel(username='foo')
+        self.assertTrue(user.is_active)
+        with self.assertRaises(AttributeError):
+            # the default attribute is not settable
+            user.is_active = False
+        # there should be no problem saving
+        user.save()
+
+    @override_settings(AUTH_USER_MODEL='auth.IsActiveTestUser3')
+    def test_is_active_class_attr(self):
+        """
+        test whether class attribute for is_active is valid
+        """
+        UserModel = get_user_model()
+        user = UserModel(username='foo')
+        # this test class defines a class attribute of False
+        self.assertFalse(user.is_active)
+        # it is valid to set this attribute on the instance
+        user.is_active = True
+        user.save()
+        # it is not saved
+        user_fetched = UserModel.objects.get(pk=user.pk)
+        self.assertFalse(user_fetched.is_active)
+
+    @override_settings(AUTH_USER_MODEL='auth.IsActiveTestUser4')
+    def test_is_active_instance_attr(self):
+        """
+        test whether non-field instance attribute for is_active is valid
+        """
+        UserModel = get_user_model()
+        user = UserModel(username='foo')
+        # this test class specifies instance attribute of False
+        self.assertFalse(user.is_active)
+        # it is valid to set this attribute
+        user.is_active = True
+        user.save()
+        # it is not saved
+        user_fetched = UserModel.objects.get(pk=user.pk)
+        self.assertFalse(user_fetched.is_active)

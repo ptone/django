@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.contrib import auth
 # UNUSABLE_PASSWORD is still imported here for backwards compatibility
 from django.contrib.auth.hashers import (
-    check_password, make_password, is_password_usable, UNUSABLE_PASSWORD)
+    check_password, make_password, is_password_usable)
 from django.contrib.auth.signals import user_logged_in
 from django.contrib.contenttypes.models import ContentType
 from django.utils.encoding import python_2_unicode_compatible
@@ -275,6 +275,27 @@ class AbstractBaseUser(models.Model):
 
     def get_short_name(self):
         raise NotImplementedError()
+
+    def __setattr__(self, attr, val):
+        if (attr == 'is_active' and not (
+                # an is_active field is defined
+                'is_active' in self._meta.get_all_field_names() or
+                # an instance is_active attribute is defined
+                'is_active' in self.__dict__ or
+                # a class is_active attribute is defined
+                hasattr(self.__class__, 'is_active'))):
+            # otherwise - the user did not explicitly specify an is_active
+            # attribute in any way - so do not allow them to set it, lest
+            # they think erroneously that it could be saved on their model
+            raise AttributeError('is_active is a read only for %s'
+                    % self.__class__.__name__)
+        return super(AbstractBaseUser, self).__setattr__(attr, val)
+
+    def __getattr__(self, attr):
+        # this is only called if is_active is not set directly on the subclass
+        if attr == 'is_active':
+            return True
+        return super(AbstractBaseUser, self).__getattr__(attr)
 
 
 @python_2_unicode_compatible
