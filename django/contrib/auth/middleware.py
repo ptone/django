@@ -2,6 +2,7 @@ from django.contrib import auth
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.functional import SimpleLazyObject
 
+BACKEND_SESSION_KEY = '_auth_user_backend'
 
 def get_user(request):
     if not hasattr(request, '_cached_user'):
@@ -47,11 +48,13 @@ class RemoteUserMiddleware(object):
         try:
             username = request.META[self.header]
         except KeyError:
-            # If specified header doesn't exist then return (leaving
-            # request.user set to AnonymousUser by the
-            # AuthenticationMiddleware).
-            if request.user.is_authenticated(): 
-                auth.logout(request) 
+            # If specified header doesn't exist then remove any existing
+            # authenticated remote-user, or return (leaving request.user set to
+            # AnonymousUser by the AuthenticationMiddleware).
+            if (request.user.is_authenticated() and
+                request.session.get(BACKEND_SESSION_KEY, '') ==
+                'django.contrib.auth.backends.RemoteUserBackend'):
+                auth.logout(request)
             return
         # If the user is already authenticated and that user is the user we are
         # getting passed in the headers, then the correct user is already
