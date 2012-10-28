@@ -58,10 +58,8 @@ class RemoteUserMiddleware(object):
                         auth.BACKEND_SESSION_KEY, ''))
                     if isinstance(stored_backend, RemoteUserBackend):
                         auth.logout(request)
-                        request.session.flush()
                 except ImproperlyConfigured as e:
                     auth.logout(request)
-                    request.session.flush()
             return
         # If the user is already authenticated and that user is the user we are
         # getting passed in the headers, then the correct user is already
