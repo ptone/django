@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.conf import settings
+from django.contrib.auth import authenticate
 from django.contrib.auth.backends import RemoteUserBackend
 from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.auth.tests.utils import skipIfCustomUser
@@ -23,7 +24,7 @@ class RemoteUserTest(TestCase):
         self.curr_middleware = settings.MIDDLEWARE_CLASSES
         self.curr_auth = settings.AUTHENTICATION_BACKENDS
         settings.MIDDLEWARE_CLASSES += (self.middleware,)
-        settings.AUTHENTICATION_BACKENDS = (self.backend,)
+        settings.AUTHENTICATION_BACKENDS += (self.backend,)
 
     def test_no_remote_user(self):
         """
@@ -108,8 +109,14 @@ class RemoteUserTest(TestCase):
         self.assertEqual(response.context['user'].username, 'knownuser')
         # During the session, the REMOTE_USER header disappears. Should trigger logout.
         response = self.client.get('/remote_user/')
-        self.assertEqual(type(response.context['user']), AnonymousUser)
-
+        self.assertEqual(response.context['user'].is_anonymous(), True)
+        # verify the remoteuser middleware will not remove a user
+        # authenticated via another backend
+        User.objects.create_user(username='modeluser', password='foo')
+        self.client.login(username='modeluser', password='foo')
+        authenticate(username='modeluser', password='foo')
+        response = self.client.get('/remote_user/')
+        self.assertEqual(response.context['user'].username, 'modeluser')
 
     def tearDown(self):
         """Restores settings to avoid breaking other tests."""
