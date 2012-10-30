@@ -59,6 +59,7 @@ class RemoteUserMiddleware(object):
                     if isinstance(stored_backend, RemoteUserBackend):
                         auth.logout(request)
                 except ImproperlyConfigured as e:
+                    # backend failed to load
                     auth.logout(request)
             return
         # If the user is already authenticated and that user is the user we are
