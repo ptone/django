@@ -215,10 +215,20 @@ class Options(object):
         name of the replacement; otherwise, return None.
         """
         if self.swappable:
-            model_label = '%s.%s' % (self.app_label, self.object_name)
+            model_label = '%s.%s' % (self.app_label, self.object_name.lower())
             swapped_for = getattr(settings, self.swappable, None)
-            if swapped_for not in (None, model_label):
-                return swapped_for
+            if swapped_for:
+                try:
+                    swapped_label, swapped_object = swapped_for.split('.')
+                except ValueError:
+                    # setting not in the format app_label.model_name
+                    # raising ImproperlyConfigured here causes problems with
+                    # test cleanup code - instead it is raised in get_user_model
+                    return None
+
+                if '%s.%s' % (swapped_label, swapped_object.lower()) not in (
+                        None, model_label ):
+                    return swapped_for
         return None
     swapped = property(_swapped)
 

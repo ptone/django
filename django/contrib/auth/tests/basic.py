@@ -165,6 +165,11 @@ class BasicTestCase(TestCase):
         with self.assertRaises(AttributeError):
             User.objects.all()
 
+    @override_settings(AUTH_USER_MODEL='auth.user')
+    def test_swappable_user_case(self):
+        "The model name is not case sensitive"
+        self.assertEqual(User._meta.swapped, None)
+
     @override_settings(AUTH_USER_MODEL='badsetting')
     def test_swappable_user_bad_setting(self):
         "The alternate user setting must point to something in the format app.model"
