@@ -52,7 +52,7 @@ class AppCache(object):
         if self._test_mode:
             for app in self.loaded_apps:
                 self.__app_cache_cellar.setdefault(
-                        app._meta.label, {}).update(app._meta.models)
+                        app.label, {}).update(app.models)
 
         for app in self.loaded_apps:
             self._unload_app(app)
@@ -99,20 +99,20 @@ class AppCache(object):
                 # check if there is more than one app with the same
                 # db_prefix attribute
                 models_apps = [app for app in self.loaded_apps if
-                        app._meta.models_path != '']
+                        app.models_path != '']
                 for app in self.loaded_apps:
                     app.relocate_models()
-                    if app._meta.models_path:
+                    if app.models_path:
                         for app2 in models_apps:
                             if (app != app2 and
-                                    app._meta.db_prefix == app2._meta.db_prefix):
+                                    app.db_prefix == app2.db_prefix):
                                 raise ImproperlyConfigured(
                                     'The apps "%s" and "%s"'
                                     ' have the same db_prefix "%s"'
-                                    % (app, app2, app._meta.db_prefix))
-                    if app._meta.installed:
-                        app._meta.module = import_module(app._meta.name)
-                        app._meta.path = os.path.dirname(app._meta.module.__file__)
+                                    % (app, app2, app.db_prefix))
+                    if app.installed:
+                        app.module = import_module(app.name)
+                        app.path = os.path.dirname(app.module.__file__)
                     app.register_models()
                     post_load = getattr(app, 'post_load', None)
                     if post_load is not None and callable(post_load):
@@ -182,7 +182,7 @@ class AppCache(object):
         # check if an app instance with app_name already exists, if not
         # then create one
         app = self.get_app_instance(app_name.split('.')[-1])
-        if app and not app._meta.installed:
+        if app and not app.installed:
             if installed:
                 # a naive app was created by model imports
                 # it will be removed when models are registered with app
@@ -199,9 +199,9 @@ class AppCache(object):
             # check to see if we failed to find the current app because
             # of it was loaded as a module attribute app object
             # eg contrib.auth.app.AuthApp
-            app = self.get_app_instance(app_class._meta.label)
+            app = self.get_app_instance(app_class.label)
 
-            if not app or app._meta.name != app_class._meta.name:
+            if not app or app.name != app_class.name:
                 app = app_class(**app_kwargs)
                 self.loaded_apps.append(app)
                 # Send the signal that the app has been loaded
@@ -209,21 +209,21 @@ class AppCache(object):
             else:
                 # found an app under different attribute load point
                 self.nesting_level -= 1
-                app._meta.installed = installed
-                return app._meta.models_module
+                app.installed = installed
+                return app.models_module
 
         else:
             # an existing app was found
-            if app._meta.name != app_name:
+            if app.name != app_name:
                 raise ImproperlyConfigured(
                     'Multiple apps with the label %s can not be loaded' %
-                    app._meta.label)
+                    app.label)
 
-            app._meta.installed = installed
+            app.installed = installed
             self.nesting_level -= 1
-            return app._meta.models_module
+            return app.models_module
 
-        app._meta.installed = installed
+        app.installed = installed
 
         if installed:
             # we need to call this after each loaded app - to remove any
@@ -234,34 +234,34 @@ class AppCache(object):
 
         # if the app was created with a label only - it has no module known
         # and has no models module
-        if not app._meta.module:
+        if not app.module:
             # TODO - should this just be based on the local installed flag?
             self.nesting_level -= 1
-            return app._meta.models_module
+            return app.models_module
 
         # TODO this will currently always return None
         # as we are postponing model import to register models
         # this is probably the best way to decouple model loading
         # from app loading
         self.nesting_level -= 1
-        return app._meta.models_module
+        return app.models_module
 
     def _unload_app(self, app):
-        for model in app._meta.models.values():
+        for model in app.models.values():
             module = model.__module__
             if module in sys.modules:
                 del sys.modules[module]
 
-        if app._meta.module:
-            app_module = app._meta.module.__name__
+        if app.module:
+            app_module = app.module.__name__
             if app_module in sys.modules:
                 del sys.modules[app_module]
 
-        if app._meta.models_module:
-            models_module = app._meta.models_module.__name__
+        if app.models_module:
+            models_module = app.models_module.__name__
             if models_module in sys.modules:
                 del sys.modules[models_module]
-        app._meta.models = {}
+        app.models = {}
         if app in self.loaded_apps:
             self.loaded_apps.remove(app)
         del(app)
@@ -277,7 +277,7 @@ class AppCache(object):
         """
         if app_name:
             for app in self.loaded_apps:
-                if app._meta.name == app_name:
+                if app.name == app_name:
                     self._unload_app(app)
         elif app_label:
             app = self.get_app_instance(app_label)
@@ -291,11 +291,11 @@ class AppCache(object):
         # app names transiently during app loading and model registration
         if app_label:
             for app in self.loaded_apps:
-                if app._meta.label == app_label:
+                if app.label == app_label:
                     return app
         elif app_name:
             for app in self.loaded_apps:
-                if app._meta.name == app_name:
+                if app.name == app_name:
                     return app
         return None
 
@@ -306,7 +306,7 @@ class AppCache(object):
         if not models_module:
             return None
         for app in self.loaded_apps:
-            if not app._meta.models_module:
+            if not app.models_module:
                 continue
             # we don't test for absolute module equality here due to testing
             # anomolies where the app_cache is reset
@@ -314,8 +314,8 @@ class AppCache(object):
             # restoring models_module
             # the file may be a py file on first import, but a pyc on second
             # import. This is a very infrequently used method.
-            if (app._meta.models_module.__name__ == models_module.__name__ and
-                app._meta.models_module.__file__.rstrip('c') ==
+            if (app.models_module.__name__ == models_module.__name__ and
+                app.models_module.__file__.rstrip('c') ==
                 models_module.__file__.rstrip('c')):
                 return app
 
@@ -333,8 +333,8 @@ class AppCache(object):
         Returns a list of all models modules.
         """
         self._populate()
-        return [app._meta.models_module for app in self.loaded_apps
-                if app._meta.models_module]
+        return [app.models_module for app in self.loaded_apps
+                if app.models_module]
 
     def get_models_module(self, app_label, emptyOK=False):
         """
@@ -344,7 +344,7 @@ class AppCache(object):
         self._populate()
         app = self.get_app_instance(app_label)
         if app:
-            mod = app._meta.models_module
+            mod = app.models_module
             if mod is None:
                 if emptyOK:
                     return None
@@ -372,8 +372,8 @@ class AppCache(object):
         self._populate()
         errors = {}
         for app in self.loaded_apps:
-            if app._meta.errors:
-                errors.update({app._meta.label: app._meta.errors})
+            if app.errors:
+                errors.update({app.label: app.errors})
         return errors
 
     def get_models(self, app_mod=None,
@@ -407,10 +407,10 @@ class AppCache(object):
             app_list = self.loaded_apps
         model_list = []
         if only_installed:
-            app_list = [app for app in app_list if app._meta.installed]
+            app_list = [app for app in app_list if app.installed]
         for app in app_list:
             model_list.extend(
-                model for model in list(app._meta.models.values())
+                model for model in list(app.models.values())
                 if ((not model._deferred or include_deferred) and
                     (not model._meta.auto_created or include_auto_created))
             )
@@ -430,7 +430,7 @@ class AppCache(object):
         app = self.get_app_instance(app_label)
         if not app:
             return
-        return app._meta.models.get(model_name.lower())
+        return app.models.get(model_name.lower())
 
     def register_models(self, app_label, *models):
         """
@@ -444,14 +444,14 @@ class AppCache(object):
             self.loaded_apps.append(app)
         for model in models:
             model_name = model._meta.object_name.lower()
-            if model_name in app._meta.models:
+            if model_name in app.models:
                 # The same model may be imported via different paths (e.g.
                 # appname.models and project.appname.models). We use the source
                 # filename as a means to detect identity.
                 fname1 = os.path.abspath(
                         sys.modules[model.__module__].__file__)
                 fname2 = os.path.abspath(sys.modules[
-                            app._meta.models[model_name].__module__].__file__)
+                            app.models[model_name].__module__].__file__)
                 # Since the filename extension could be .py the first time and
                 # .pyc or .pyo the second time, ignore the extension when
                 # comparing.
@@ -462,12 +462,13 @@ class AppCache(object):
                             'A model named %s'
                             'is already registered for this app' % model_name)
 
-            if app._meta.models_module is None:
-                app._meta.models_module = sys.modules[model.__module__]
-            app._meta.models[model_name] = model
+            if app.models_module is None:
+                app.models_module = sys.modules[model.__module__]
+            app.models[model_name] = model
             # for installed apps this is updated again in the app's
             # register_models method - but for raw imported models
             # it is not
+            # TODO - this needs to/will go away
             model._meta.app = app
 
         self._get_models_cache.clear()
@@ -479,7 +480,7 @@ class AppCache(object):
         """
         self._populate()
         Apps = namedtuple(
-                'Apps', [app._meta.label for app in self.loaded_apps])
+                'Apps', [app.label for app in self.loaded_apps])
         self._apps = Apps._make(self.loaded_apps)
 
     @property
@@ -501,14 +502,14 @@ class AppCache(object):
         reset app_cache. This method keeps a copy of the model-app associations
         and reconnects them after a cache reset.
         TODO:
-        this currently only is handling models, not app._meta.models_module
+        this currently only is handling models, not app.models_module
         """
         for app in self.loaded_apps:
-            app_label = app._meta.label
+            app_label = app.label
             if app_label in self.__app_cache_cellar:
                 for model, module in \
                         self.__app_cache_cellar[app_label].items():
-                    if model not in app._meta.models:
-                        app._meta.models[model] = module
-                for model in app._meta.models.values():
+                    if model not in app.models:
+                        app.models[model] = module
+                for model in app.models.values():
                     model._meta.app = app
