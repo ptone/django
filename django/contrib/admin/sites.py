@@ -433,7 +433,7 @@ class AdminSite(object):
                             # something to display, add in the necessary meta
                             # information.
                             app_dict = {
-                                'name': app._meta.verbose_name,
+                                'name': app.verbose_name,
                                 'app_label': app_label,
                                 'app_url': '',
                                 'has_module_perms': has_module_perms,
@@ -444,7 +444,7 @@ class AdminSite(object):
         # Sort the models alphabetically within each app.
         app_dict['models'].sort(key=lambda x: x['name'])
         context = {
-            'title': _('%s administration') % app._meta.verbose_name,
+            'title': _('%s administration') % app.verbose_name,
             'app_list': [app_dict],
         }
         context.update(extra_context or {})

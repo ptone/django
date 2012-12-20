@@ -25,12 +25,12 @@ class Loader(BaseLoader):
             pkg_name = 'templates/' + template_name
             for app in app_cache.loaded_apps:
                 try:
-                    resource = resource_string(app._meta.name, pkg_name)
+                    resource = resource_string(app.name, pkg_name)
                 except Exception:
                     continue
                 if not six.PY3:
                     resource = resource.decode(settings.FILE_CHARSET)
-                return (resource, 'egg:%s:%s' % (app._meta.name, pkg_name))
+                return (resource, 'egg:%s:%s' % (app.name, pkg_name))
         raise TemplateDoesNotExist(template_name)
 
 _loader = Loader()

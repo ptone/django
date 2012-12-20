@@ -40,7 +40,7 @@ class Command(NoArgsCommand):
         # dispatcher events.
         for app in app_cache.loaded_apps:
             try:
-                import_module('%s.management' % app._meta.name)
+                import_module('%s.management' % app.name)
             except ImportError:
                 pass
 

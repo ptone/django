@@ -298,7 +298,7 @@ class AppStaticStorage(FileSystemStorage):
         # app is the actual app module
         mod = import_module(app)
         mod_path = os.path.dirname(upath(mod.__file__))
-        location = os.path.join(app._meta.path, self.source_dir)
+        location = os.path.join(app.path, self.source_dir)
         super(AppStaticStorage, self).__init__(location, *args, **kwargs)
 
 

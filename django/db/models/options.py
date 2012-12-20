@@ -121,7 +121,7 @@ class Options(object):
         # when the app cache is not initialized but the model is imported
         if not self.db_table:
             app = app_cache.get_app_instance(self.app_label)
-            prefix = app and app._meta.db_prefix or self.app_label
+            prefix = app and app.db_prefix or self.app_label
             self.db_table = truncate_name("%s_%s" % (prefix, self.module_name),
                                           connection.ops.max_name_length())
 
@@ -542,6 +542,7 @@ class Options(object):
     @property
     def installed(self):
         # first test TODO will need setter with warning as well
+        # TODO - just set this on populate- won't change, will remove need for backref to app ob
         if self.app:
-            return self.app._meta.installed
+            return self.app.installed
         return False

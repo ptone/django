@@ -118,8 +118,8 @@ def get_commands():
         # Find and load the management module for each installed app.
         for app in apps:
             try:
-                path = find_management_module(app._meta.name)
-                _commands.update(dict([(name, app._meta.name)
+                path = find_management_module(app.name)
+                _commands.update(dict([(name, app.name)
                                        for name in find_commands(path)]))
             except ImportError:
                 pass # No management module - ignore this app
@@ -329,7 +329,7 @@ class ManagementUtility(object):
                 try:
                     from django.conf import settings
                     # Get the last part of the dotted path as the app name.
-                    options += [(app._meta.label, 0) for app in app_cache.loaded_apps]
+                    options += [(app.label, 0) for app in app_cache.loaded_apps]
                 except ImportError:
                     # Fail silently if DJANGO_SETTINGS_MODULE isn't set. The
                     # user will find out once they execute the command.

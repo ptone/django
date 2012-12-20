@@ -37,7 +37,7 @@ class Command(NoArgsCommand):
         # dispatcher events.
         for app in app_cache.loaded_apps:
             try:
-                import_module('.management', app._meta.name)
+                import_module('.management', app.name)
             except ImportError as exc:
                 # This is slightly hackish. We want to ignore ImportErrors
                 # if the "management" module itself is missing -- but we don't
@@ -64,10 +64,10 @@ class Command(NoArgsCommand):
 
         # Build the manifest of apps and models that are to be synchronized
         all_models = [
-            (app._meta.label,
-                [m for m in models.get_models(app._meta.models_module,
+            (app.label,
+                [m for m in models.get_models(app.models_module,
                                               include_auto_created=True)
-                if app._meta.models_module and router.allow_syncdb(db, m)])
+                if app.models_module and router.allow_syncdb(db, m)])
             for app in app_cache.loaded_apps
         ]
 

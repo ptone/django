@@ -17,5 +17,5 @@ class SitemapTestsBase(TestCase):
         User.objects.create_user('testuser', 'test@example.com', 's3krit')
 
     def tearDown(self):
-        Site._meta.app._meta.installed = self.old_Site_meta_installed
-        # Site._meta.app._meta.installed = True
+        Site._meta.app.installed = self.old_Site_meta_installed
+        # Site._meta.app.installed = True

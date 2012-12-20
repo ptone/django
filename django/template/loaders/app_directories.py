@@ -20,7 +20,7 @@ if not six.PY3:
     fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
 app_template_dirs = []
 for app in app_cache.loaded_apps:
-    template_dir = os.path.join(app._meta.path, 'templates')
+    template_dir = os.path.join(app.path, 'templates')
     if os.path.isdir(template_dir):
         if not six.PY3:
             template_dir = template_dir.decode(fs_encoding)

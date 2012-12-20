@@ -1276,7 +1276,7 @@ def get_templatetags_modules():
         # Populate list once per process. Mutate the local list first, and
         # then assign it to the global name to ensure there are no cases where
         # two threads try to populate it simultaneously.
-        for app_module in ['django'] + [app._meta.name for app in app_cache.loaded_apps]:
+        for app_module in ['django'] + [app.name for app in app_cache.loaded_apps]:
             try:
                 templatetag_module = '%s.templatetags' % app_module
                 import_module(templatetag_module)
