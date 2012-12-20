@@ -25,14 +25,14 @@ class ReloadTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('appcachetests.cachetests.model_app',)
         app_cache._populate()
         self.assertEquals(len(app_cache.loaded_apps), 1)
-        self.assertEquals(app_cache.loaded_apps[0]._meta.name,
+        self.assertEquals(app_cache.loaded_apps[0].name,
                 'appcachetests.cachetests.model_app')
         settings.INSTALLED_APPS = (
                 'appcachetests.cachetests.anothermodel_app',
                 'appcachetests.cachetests.model_app')
         app_cache._reload()
         self.assertEquals(len(app_cache.loaded_apps), 2)
-        self.assertEquals(app_cache.loaded_apps[0]._meta.name,
+        self.assertEquals(app_cache.loaded_apps[0].name,
                 'appcachetests.cachetests.anothermodel_app')
 
     def test_reload_register_models(self):
@@ -42,9 +42,9 @@ class ReloadTests(AppCacheTestCase):
         """
         settings.INSTALLED_APPS = ('appcachetests.cachetests.model_app',)
         app_cache._populate()
-        self.assertTrue('model_app' in [app._meta.label for app in app_cache.loaded_apps])
+        self.assertTrue('model_app' in [app.label for app in app_cache.loaded_apps])
         app_cache._reload()
-        self.assertTrue('model_app' in [app._meta.label for app in app_cache.loaded_apps])
+        self.assertTrue('model_app' in [app.label for app in app_cache.loaded_apps])
 
 
 class AppCacheReadyTests(AppCacheTestCase):
@@ -432,10 +432,10 @@ class LoadAppTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('appcachetests.cachetests.model_app',)
         app_cache._populate()
         app = app_cache.loaded_apps[0]
-        mod = app._meta.models_module
+        mod = app.models_module
         self.assertEqual(len(app_cache.loaded_apps), 1)
-        self.assertEqual(app._meta.name, 'appcachetests.cachetests.model_app')
-        self.assertEqual(app._meta.models_module.__name__,
+        self.assertEqual(app.name, 'appcachetests.cachetests.model_app')
+        self.assertEqual(app.models_module.__name__,
                 'appcachetests.cachetests.model_app.models')
         self.assertEqual(mod.__name__,
                 'appcachetests.cachetests.model_app.models')
@@ -446,17 +446,17 @@ class LoadAppTests(AppCacheTestCase):
                 'appcachetests.cachetests.model_app.app.MyOtherApp',)
         app_cache._populate()
         app = app_cache.loaded_apps[0]
-        mod = app._meta.models_module
-        self.assertEqual(app._meta.name,
+        mod = app.models_module
+        self.assertEqual(app.name,
                 'appcachetests.cachetests.model_app')
-        self.assertEqual(app._meta.models_module.__name__,
+        self.assertEqual(app.models_module.__name__,
                 'appcachetests.cachetests.model_app.othermodels')
         self.assertEqual(mod.__name__, 'appcachetests.cachetests.model_app.othermodels')
         self.assertEqual(app.__class__.__bases__, (MyApp,))
-        self.assertEqual(app._meta.models_path,
+        self.assertEqual(app.models_path,
                 'appcachetests.cachetests.model_app.othermodels')
-        self.assertEqual(app._meta.db_prefix, 'nomodel_app')
-        self.assertEqual(app._meta.verbose_name, 'model_app')
+        self.assertEqual(app.db_prefix, 'nomodel_app')
+        self.assertEqual(app.verbose_name, 'model_app')
 
     def test_with_multiple_inheritance(self):
         from appcachetests.cachetests.model_app.app import MyOtherApp
@@ -465,17 +465,17 @@ class LoadAppTests(AppCacheTestCase):
                 'appcachetests.cachetests.model_app.app.MySecondApp',)
         app_cache._populate()
         app = app_cache.loaded_apps[0]
-        mod = app._meta.models_module
-        self.assertEqual(app._meta.name, 'appcachetests.cachetests.model_app')
-        self.assertEqual(app._meta.models_module.__name__,
+        mod = app.models_module
+        self.assertEqual(app.name, 'appcachetests.cachetests.model_app')
+        self.assertEqual(app.models_module.__name__,
                 'appcachetests.cachetests.model_app.models')
         self.assertEqual(mod.__name__,
                 'appcachetests.cachetests.model_app.models')
         self.assertEqual(app.__class__.__bases__, (MyOtherApp,))
-        self.assertEqual(app._meta.models_path,
+        self.assertEqual(app.models_path,
                 'appcachetests.cachetests.model_app.models')
-        self.assertEqual(app._meta.db_prefix, 'nomodel_app')
-        self.assertEqual(app._meta.verbose_name, 'model_app')
+        self.assertEqual(app.db_prefix, 'nomodel_app')
+        self.assertEqual(app.verbose_name, 'model_app')
 
     def test_with_complicated_inheritance(self):
         from appcachetests.cachetests.model_app.app import MySecondApp, YetAnotherApp
@@ -484,17 +484,17 @@ class LoadAppTests(AppCacheTestCase):
                 'appcachetests.cachetests.model_app.app.MyThirdApp',)
         app_cache._populate()
         app = app_cache.loaded_apps[0]
-        mod = app._meta.models_module
-        self.assertEqual(app._meta.name, 'appcachetests.cachetests.model_app')
-        self.assertEqual(app._meta.models_module.__name__,
+        mod = app.models_module
+        self.assertEqual(app.name, 'appcachetests.cachetests.model_app')
+        self.assertEqual(app.models_module.__name__,
                 'appcachetests.cachetests.model_app.yetanother')
         self.assertEqual(mod.__name__,
                 'appcachetests.cachetests.model_app.yetanother')
         self.assertEqual(app.__class__.__bases__, (YetAnotherApp, MySecondApp))
-        self.assertEqual(app._meta.models_path,
+        self.assertEqual(app.models_path,
                 'appcachetests.cachetests.model_app.yetanother')
-        self.assertEqual(app._meta.db_prefix, 'nomodel_app')
-        self.assertEqual(app._meta.verbose_name, 'model_app')
+        self.assertEqual(app.db_prefix, 'nomodel_app')
+        self.assertEqual(app.verbose_name, 'model_app')
 
     def test_with_custom_models(self):
         """
@@ -506,7 +506,7 @@ class LoadAppTests(AppCacheTestCase):
                 'appcachetests.cachetests.model_app.app.MyApp',
                 can_postpone=False)
         app = app_cache.loaded_apps[0]
-        self.assertEqual(app._meta.models_module.__name__,
+        self.assertEqual(app.models_module.__name__,
                 'appcachetests.cachetests.model_app.othermodels')
         self.assertTrue(isinstance(app, MyApp))
         self.assertEqual(mod.__name__,
@@ -520,7 +520,7 @@ class LoadAppTests(AppCacheTestCase):
         mod = app_cache.load_app('appcachetests.cachetests.nomodel_app')
         app = app_cache.loaded_apps[0]
         self.assertEqual(len(app_cache.loaded_apps), 1)
-        self.assertEqual(app._meta.name,
+        self.assertEqual(app.name,
                 'appcachetests.cachetests.nomodel_app')
         self.assertEqual(mod, None)
 
@@ -534,7 +534,7 @@ class LoadAppTests(AppCacheTestCase):
         mod2 = app_cache.load_app('appcachetests.cachetests.model_app',
                 installed=True)
         self.assertEqual(len(app_cache.loaded_apps), 1)
-        self.assertEqual('model_app', app_cache.loaded_apps[0]._meta.label)
+        self.assertEqual('model_app', app_cache.loaded_apps[0].label)
 
     def test_importerror(self):
         """
@@ -589,7 +589,7 @@ class RegisterModelsTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('appcachetests.cachetests.model_app',)
         app_cache._populate()
         self.assertTrue(app_cache.ready())
-        app_models = list(app_cache.loaded_apps[0]._meta.models.values())
+        app_models = list(app_cache.loaded_apps[0].models.values())
         self.assertEqual(len(app_models), 1)
         self.assertEqual(app_models[0].__name__, 'Person')
 
@@ -604,7 +604,7 @@ class RegisterModelsTests(AppCacheTestCase):
         from appcachetests.cachetests.model_app.models import Person
         app_cache.register_models('model_app_NONEXISTENT', *(Person,))
         naive_app = app_cache.get_app_instance('model_app_NONEXISTENT')
-        loaded_person = naive_app._meta.models['person']
+        loaded_person = naive_app.models['person']
         self.assertEquals(loaded_person, Person)
 
     def test_unseeded_cache(self):
@@ -614,7 +614,7 @@ class RegisterModelsTests(AppCacheTestCase):
         from appcachetests.cachetests.model_app.models import Person
         self.assertFalse(app_cache.ready())
         naive_app = app_cache.get_app_instance('model_app')
-        loaded_person = naive_app._meta.models['person']
+        loaded_person = naive_app.models['person']
         self.assertEquals(loaded_person, Person)
 
 
@@ -630,7 +630,7 @@ class GetAppInstanceTests(AppCacheTestCase):
         app_cache._populate()
         self.assertTrue(app_cache.ready())
         app = app_cache.get_app_instance('model_app')
-        self.assertEquals(app._meta.name,
+        self.assertEquals(app.name,
                 'appcachetests.cachetests.model_app')
         self.assertTrue(isinstance(app, App))
         self.assertEquals(app.__repr__(),
@@ -654,7 +654,7 @@ class GetAppInstanceTests(AppCacheTestCase):
         app_cache.load_app('appcachetests.cachetests.model_app')
         self.assertFalse(app_cache.ready())
         app = app_cache.get_app_instance('model_app')
-        self.assertEquals(app._meta.name, 'appcachetests.cachetests.model_app')
+        self.assertEquals(app.name, 'appcachetests.cachetests.model_app')
         self.assertTrue(isinstance(app, App))
 
     def test_option_override(self):
@@ -672,10 +672,10 @@ class GetAppInstanceTests(AppCacheTestCase):
         )
         app_cache._populate()
         admin = app_cache.get_app_instance('admin')
-        self.assertRaises(AttributeError, lambda: admin._meta.spam)
+        self.assertRaises(AttributeError, lambda: admin.spam)
         self.assertEquals(admin.spam, 'spam')
         model_app = app_cache.get_app_instance('model_app')
-        self.assertEquals(model_app._meta.db_prefix, 'foobar_prefix')
+        self.assertEquals(model_app.db_prefix, 'foobar_prefix')
         self.assertEquals(model_app.eggs, 'eggs')
 
     def test_conflicting_option_override(self):
@@ -697,11 +697,12 @@ class GetAppInstanceTests(AppCacheTestCase):
         Tests that class attributes of apps are correctly set in the
         instances, not only the _meta options.
         """
+        # TODO - still required after de-meta?
         settings.INSTALLED_APPS = (
                 'appcachetests.cachetests.model_app.app.MyApp',)
         app_cache._reload()
         model_app = app_cache.get_app_instance('model_app')
-        self.assertEquals(model_app._meta.db_prefix, 'model_app')
+        self.assertEquals(model_app.db_prefix, 'model_app')
         self.assertEquals(model_app.some_attribute, True)
 
     def test_find_app_by_models_module(self):
@@ -739,7 +740,7 @@ class SignalTests(AppCacheTestCase):
         """
         # connect the callback before the cache is initialized
         def app_loaded_callback(sender, app, **kwargs):
-            self.assertEqual(app._meta.name,
+            self.assertEqual(app.name,
                     'appcachetests.cachetests.model_app')
             self.signal_fired = True
         app_loaded.connect(app_loaded_callback)
@@ -758,9 +759,9 @@ class SignalTests(AppCacheTestCase):
                 'appcachetests.cachetests.anothermodel_app')
         def callback(sender, apps, **kwargs):
             self.assertEqual(len(apps), 2)
-            self.assertEqual(apps[0]._meta.name,
+            self.assertEqual(apps[0].name,
                     'appcachetests.cachetests.model_app')
-            self.assertEqual(apps[1]._meta.name,
+            self.assertEqual(apps[1].name,
                     'appcachetests.cachetests.anothermodel_app')
             self.signal_fired = True
         post_apps_loaded.connect(callback)
@@ -790,7 +791,7 @@ class EggLoadingTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('app_with_models',)
         app_cache._populate()
         models_module = app_cache.get_app_instance(
-                'app_with_models')._meta.models_module
+                'app_with_models').models_module
         self.assertFalse(models_module is None)
 
     def test_egg2(self):
@@ -813,7 +814,7 @@ class EggLoadingTests(AppCacheTestCase):
         settings.INSTALLED_APPS = ('omelet.app_with_models',)
         app_cache._populate()
         models_module = app_cache.get_app_instance(
-                'app_with_models')._meta.models_module
+                'app_with_models').models_module
         self.assertFalse(models_module is None)
 
     def test_egg4(self):
