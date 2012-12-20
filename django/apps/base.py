@@ -2,6 +2,7 @@ import re
 import sys
 
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.encoding import smart_str
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
 from django.utils.text import get_verbose_name
@@ -53,8 +54,8 @@ class App(object):
     def from_name(cls, name):
         upper = lambda match: match.group(1).upper()
         cls_name = module_name_re.sub(upper, name.split('.')[-1])
-        return type(cls_name[0].upper() +
-                cls_name[1:], (cls,), {'_name': name})
+        return type(smart_str(cls_name[0].upper() + cls_name[1:]),
+                (cls,), {'_name': name})
 
     @classmethod
     def from_label(cls, label):
