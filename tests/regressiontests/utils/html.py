@@ -65,6 +65,9 @@ class TestUtilsHtml(unittest.TestCase):
             ('<f', '<f'),
             ('</fe', '</fe'),
             ('<x>b<y>', 'b'),
+            ('a<p onclick="alert(\'<test>\')">b</p>c', 'abc'),
+            ('a<p a >b</p>c', 'abc'),
+            ('d<a:b c:d>e</p>f', 'def'),
         )
         for value, output in items:
             self.check_output(f, value, output)
@@ -154,4 +157,4 @@ class TestUtilsHtml(unittest.TestCase):
             ("<a>x</a> <p><b>y</b></p>", "a b", "x <p>y</p>"),
         )
         for value, tags, output in items:
-            self.assertEquals(f(value, tags), output)
+            self.assertEqual(f(value, tags), output)

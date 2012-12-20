@@ -70,7 +70,7 @@ class ManyToOneTests(TestCase):
         self.assertQuerysetEqual(self.r2.article_set.all(), ["<Article: Paul's story>"])
 
         # Adding an object of the wrong type raises TypeError.
-        with self.assertRaisesRegexp(TypeError, "'Article' instance expected, got <Reporter.*"):
+        with six.assertRaisesRegex(self, TypeError, "'Article' instance expected, got <Reporter.*"):
             self.r.article_set.add(self.r2)
         self.assertQuerysetEqual(self.r.article_set.all(),
             [
@@ -267,7 +267,9 @@ class ManyToOneTests(TestCase):
             ["<Reporter: John Smith>"])
         self.assertQuerysetEqual(
             Reporter.objects.filter(article__headline__startswith='T'),
-            ["<Reporter: John Smith>", "<Reporter: John Smith>"])
+            ["<Reporter: John Smith>", "<Reporter: John Smith>"],
+            ordered=False
+        )
         self.assertQuerysetEqual(
             Reporter.objects.filter(article__headline__startswith='T').distinct(),
             ["<Reporter: John Smith>"])
@@ -285,7 +287,9 @@ class ManyToOneTests(TestCase):
                 "<Reporter: John Smith>",
                 "<Reporter: John Smith>",
                 "<Reporter: John Smith>",
-            ])
+            ],
+            ordered=False
+        )
         self.assertQuerysetEqual(
             Reporter.objects.filter(article__reporter__first_name__startswith='John').distinct(),
             ["<Reporter: John Smith>"])

@@ -5,7 +5,7 @@
 Django documentation
 ====================
 
-.. rubric:: Everything you need to know about Django (and then some).
+.. rubric:: Everything you need to know about Django.
 
 Getting help
 ============
@@ -44,7 +44,12 @@ Are you new to Django or to programming? This is the place to start!
   :doc:`Part 1 <intro/tutorial01>` |
   :doc:`Part 2 <intro/tutorial02>` |
   :doc:`Part 3 <intro/tutorial03>` |
-  :doc:`Part 4 <intro/tutorial04>`
+  :doc:`Part 4 <intro/tutorial04>` |
+  :doc:`Part 5 <intro/tutorial05>`
+
+* **Advanced Tutorials:**
+  :doc:`How to write reusable apps <intro/reusable-apps>` |
+  :doc:`Writing your first patch for Django <intro/contributing>`
 
 The model layer
 ===============
@@ -108,7 +113,8 @@ to know about views via the links below:
   :doc:`Built-in display views <topics/class-based-views/generic-display>` |
   :doc:`Built-in editing views <topics/class-based-views/generic-editing>` |
   :doc:`Using mixins <topics/class-based-views/mixins>` |
-  :doc:`API reference <ref/class-based-views/index>`
+  :doc:`API reference <ref/class-based-views/index>` |
+  :doc:`Flattened index<ref/class-based-views/flattened-index>`
 
 * **Advanced:**
   :doc:`Generating CSV <howto/outputting-csv>` |
@@ -180,7 +186,6 @@ testing of Django applications:
   :doc:`Overview <howto/deployment/index>` |
   :doc:`WSGI servers <howto/deployment/wsgi/index>` |
   :doc:`FastCGI/SCGI/AJP <howto/deployment/fastcgi>` |
-  :doc:`Apache authentication <howto/apache-auth>` |
   :doc:`Handling static files <howto/static-files>` |
   :doc:`Tracking code errors by email <howto/error-reporting>`
 
@@ -240,7 +245,7 @@ applications:
 * :doc:`Authentication <topics/auth>`
 * :doc:`Caching <topics/cache>`
 * :doc:`Logging <topics/logging>`
-* :doc:`Sending e-mails <topics/email>`
+* :doc:`Sending emails <topics/email>`
 * :doc:`Syndication feeds (RSS/Atom) <ref/contrib/syndication>`
 * :doc:`Comments <ref/contrib/comments/index>`, :doc:`comment moderation <ref/contrib/comments/moderation>` and :doc:`custom comments <ref/contrib/comments/custom>`
 * :doc:`Pagination <topics/pagination>`

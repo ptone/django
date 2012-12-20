@@ -4,7 +4,7 @@ import datetime
 from django.conf import settings
 from django.utils import dateformat, numberformat, datetime_safe
 from django.utils.importlib import import_module
-from django.utils.encoding import smart_str
+from django.utils.encoding import force_str
 from django.utils.functional import lazy
 from django.utils.safestring import mark_safe
 from django.utils import six
@@ -15,6 +15,17 @@ from django.utils.translation import get_language, to_locale, check_for_language
 # repeatedly.
 _format_cache = {}
 _format_modules_cache = {}
+
+ISO_INPUT_FORMATS = {
+    'DATE_INPUT_FORMATS': ('%Y-%m-%d',),
+    'TIME_INPUT_FORMATS': ('%H:%M:%S', '%H:%M'),
+    'DATETIME_INPUT_FORMATS': (
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M:%S.%f',
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%d'
+    ),
+}
 
 def reset_format_cache():
     """Clear any cached formats.
@@ -66,7 +77,7 @@ def get_format(format_type, lang=None, use_l10n=None):
     If use_l10n is provided and is not None, that will force the value to
     be localized (or not), overriding the value of settings.USE_L10N.
     """
-    format_type = smart_str(format_type)
+    format_type = force_str(format_type)
     if use_l10n or (use_l10n is None and settings.USE_L10N):
         if lang is None:
             lang = get_language()
@@ -82,6 +93,11 @@ def get_format(format_type, lang=None, use_l10n=None):
             for module in get_format_modules(lang):
                 try:
                     val = getattr(module, format_type)
+                    for iso_input in ISO_INPUT_FORMATS.get(format_type, ()):
+                        if iso_input not in val:
+                            if isinstance(val, tuple):
+                                val = list(val)
+                            val.append(iso_input)
                     _format_cache[cache_key] = val
                     return val
                 except AttributeError:
@@ -160,14 +176,14 @@ def localize_input(value, default=None):
         return number_format(value)
     elif isinstance(value, datetime.datetime):
         value = datetime_safe.new_datetime(value)
-        format = smart_str(default or get_format('DATETIME_INPUT_FORMATS')[0])
+        format = force_str(default or get_format('DATETIME_INPUT_FORMATS')[0])
         return value.strftime(format)
     elif isinstance(value, datetime.date):
         value = datetime_safe.new_date(value)
-        format = smart_str(default or get_format('DATE_INPUT_FORMATS')[0])
+        format = force_str(default or get_format('DATE_INPUT_FORMATS')[0])
         return value.strftime(format)
     elif isinstance(value, datetime.time):
-        format = smart_str(default or get_format('TIME_INPUT_FORMATS')[0])
+        format = force_str(default or get_format('TIME_INPUT_FORMATS')[0])
         return value.strftime(format)
     return value
 

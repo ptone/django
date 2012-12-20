@@ -136,7 +136,7 @@ class TemplateCommand(BaseCommand):
                     os.mkdir(target_dir)
 
             for dirname in dirs[:]:
-                if dirname.startswith('.'):
+                if dirname.startswith('.') or dirname == '__pycache__':
                     dirs.remove(dirname)
 
             for filename in files:
@@ -154,12 +154,14 @@ class TemplateCommand(BaseCommand):
 
                 # Only render the Python files, as we don't want to
                 # accidentally render Django templates files
-                with open(old_path, 'r') as template_file:
+                with open(old_path, 'rb') as template_file:
                     content = template_file.read()
                 if filename.endswith(extensions) or filename in extra_files:
+                    content = content.decode('utf-8')
                     template = Template(content)
                     content = template.render(context)
-                with open(new_path, 'w') as new_file:
+                    content = content.encode('utf-8')
+                with open(new_path, 'wb') as new_file:
                     new_file.write(content)
 
                 if self.verbosity >= 2:

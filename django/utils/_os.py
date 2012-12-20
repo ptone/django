@@ -1,6 +1,8 @@
 import os
 import stat
-from os.path import join, normcase, normpath, abspath, isabs, sep
+import sys
+from os.path import join, normcase, normpath, abspath, isabs, sep, dirname
+
 from django.utils.encoding import force_text
 from django.utils import six
 
@@ -9,6 +11,9 @@ try:
 except NameError:
     class WindowsError(Exception):
         pass
+
+if not six.PY3:
+    fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
 
 
 # Under Python 2, define our own abspath function that can handle joining
@@ -29,6 +34,23 @@ else:
             path = join(os.getcwdu(), path)
         return normpath(path)
 
+def upath(path):
+    """
+    Always return a unicode path.
+    """
+    if not six.PY3:
+        return path.decode(fs_encoding)
+    return path
+
+def npath(path):
+    """
+    Always return a native path, that is unicode on Python 3 and bytestring on
+    Python 2.
+    """
+    if not six.PY3 and not isinstance(path, bytes):
+        return path.encode(fs_encoding)
+    return path
+
 def safe_join(base, *paths):
     """
     Joins one or more path components to the base path component intelligently.
@@ -41,13 +63,16 @@ def safe_join(base, *paths):
     paths = [force_text(p) for p in paths]
     final_path = abspathu(join(base, *paths))
     base_path = abspathu(base)
-    base_path_len = len(base_path)
     # Ensure final_path starts with base_path (using normcase to ensure we
-    # don't false-negative on case insensitive operating systems like Windows)
-    # and that the next character after the final path is os.sep (or nothing,
-    # in which case final_path must be equal to base_path).
-    if not normcase(final_path).startswith(normcase(base_path)) \
-       or final_path[base_path_len:base_path_len+1] not in ('', sep):
+    # don't false-negative on case insensitive operating systems like Windows),
+    # further, one of the following conditions must be true:
+    #  a) The next character is the path separator (to prevent conditions like
+    #     safe_join("/dir", "/../d"))
+    #  b) The final path must be the same as the base path.
+    #  c) The base path must be the most root path (meaning either "/" or "C:\\")
+    if (not normcase(final_path).startswith(normcase(base_path + sep)) and
+        normcase(final_path) != normcase(base_path) and
+        dirname(normcase(base_path)) != normcase(base_path)):
         raise ValueError('The joined path (%s) is located outside of the base '
                          'path component (%s)' % (final_path, base_path))
     return final_path
@@ -71,4 +96,3 @@ def rmtree_errorhandler(func, path, exc_info):
     os.chmod(path, stat.S_IWRITE)
     # use the original function to repeat the operation
     func(path)
-

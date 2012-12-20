@@ -9,6 +9,7 @@ from django.core.management import call_command
 from django.db.models.signals import post_syncdb
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import override_settings
+from django.utils._os import upath
 
 from modeltests.proxy_model_inheritance.models import (ConcreteModel, ConcreteModelSubclass,
     ConcreteModelSubclassProxy)

@@ -12,7 +12,8 @@ from django.utils import six
 from django.utils import unittest
 
 from .models import (Foo, Bar, Whiz, BigD, BigS, Image, BigInt, Post,
-    NullBooleanModel, BooleanModel, Document, RenamedField)
+    NullBooleanModel, BooleanModel, Document, RenamedField, VerboseNameField,
+    FksToBooleans)
 
 from .imagefield import (ImageFieldTests, ImageFieldTwoDimensionsTests,
     TwoImageFieldTests, ImageFieldNoDimensionsTests,
@@ -63,6 +64,14 @@ class BasicFieldTests(test.TestCase):
         instance = RenamedField()
         self.assertTrue(hasattr(instance, 'get_fieldname_display'))
         self.assertFalse(hasattr(instance, 'get_modelname_display'))
+
+    def test_field_verbose_name(self):
+        m = VerboseNameField
+        for i in range(1, 23):
+            self.assertEqual(m._meta.get_field('field%d' % i).verbose_name,
+                    'verbose field%d' % i)
+
+        self.assertEqual(m._meta.get_field('id').verbose_name, 'verbose pk')
 
 class DecimalFieldTests(test.TestCase):
     def test_to_python(self):
@@ -209,6 +218,43 @@ class BooleanFieldTests(unittest.TestCase):
         b5 = BooleanModel.objects.all().extra(
             select={'string_col': 'string'})[0]
         self.assertFalse(isinstance(b5.pk, bool))
+
+    def test_select_related(self):
+        """
+        Test type of boolean fields when retrieved via select_related() (MySQL,
+        #15040)
+        """
+        bmt = BooleanModel.objects.create(bfield=True)
+        bmf = BooleanModel.objects.create(bfield=False)
+        nbmt = NullBooleanModel.objects.create(nbfield=True)
+        nbmf = NullBooleanModel.objects.create(nbfield=False)
+
+        m1 = FksToBooleans.objects.create(bf=bmt, nbf=nbmt)
+        m2 = FksToBooleans.objects.create(bf=bmf, nbf=nbmf)
+
+        # Test select_related('fk_field_name')
+        ma = FksToBooleans.objects.select_related('bf').get(pk=m1.id)
+        # verify types -- should't be 0/1
+        self.assertIsInstance(ma.bf.bfield, bool)
+        self.assertIsInstance(ma.nbf.nbfield, bool)
+        # verify values
+        self.assertEqual(ma.bf.bfield, True)
+        self.assertEqual(ma.nbf.nbfield, True)
+
+        # Test select_related()
+        mb = FksToBooleans.objects.select_related().get(pk=m1.id)
+        mc = FksToBooleans.objects.select_related().get(pk=m2.id)
+        # verify types -- shouldn't be 0/1
+        self.assertIsInstance(mb.bf.bfield, bool)
+        self.assertIsInstance(mb.nbf.nbfield, bool)
+        self.assertIsInstance(mc.bf.bfield, bool)
+        self.assertIsInstance(mc.nbf.nbfield, bool)
+        # verify values
+        self.assertEqual(mb.bf.bfield, True)
+        self.assertEqual(mb.nbf.nbfield, True)
+        self.assertEqual(mc.bf.bfield, False)
+        self.assertEqual(mc.nbf.nbfield, False)
+
 
 class ChoicesTests(test.TestCase):
     def test_choices_and_field_display(self):

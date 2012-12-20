@@ -1,10 +1,13 @@
+import collections
 import sys
 
 from django.apps import app_cache
+from django.conf import settings
 from django.core.management.color import color_style
-from django.utils.encoding import smart_str
+from django.utils.encoding import force_str
 from django.utils.itercompat import is_iterable
 from django.utils import six
+
 
 class ModelErrorCollection:
     def __init__(self, outfile=sys.stdout):
@@ -14,7 +17,8 @@ class ModelErrorCollection:
 
     def add(self, context, error):
         self.errors.append((context, error))
-        self.outfile.write(self.style.ERROR(smart_str("%s: %s\n" % (context, error))))
+        self.outfile.write(self.style.ERROR(force_str("%s: %s\n" % (context, error))))
+
 
 def get_validation_errors(outfile, app=None):
     """
@@ -31,10 +35,28 @@ def get_validation_errors(outfile, app=None):
     for (app_name, error) in app_cache.get_app_errors().items():
         e.add(app_name, error)
 
-    for cls in app_cache.get_models(app):
+    for cls in app_cache.get_models(app, include_swapped=True):
         opts = cls._meta
 
-        # Do field-specific validation.
+        # Check swappable attribute.
+        if opts.swapped:
+            try:
+                app_label, model_name = opts.swapped.split('.')
+            except ValueError:
+                e.add(opts, "%s is not of the form 'app_label.app_name'." % opts.swappable)
+                continue
+            if not models.get_model(app_label, model_name):
+                e.add(opts, "Model has been swapped out for '%s' which has not been installed or is abstract." % opts.swapped)
+            # No need to perform any other validation checks on a swapped model.
+            continue
+
+        # This is the current User model. Check known validation problems with User models
+        if settings.AUTH_USER_MODEL == '%s.%s' % (opts.app_label, opts.object_name):
+            # Check that the USERNAME FIELD isn't included in REQUIRED_FIELDS.
+            if cls.USERNAME_FIELD in cls.REQUIRED_FIELDS:
+                e.add(opts, 'The field named as the USERNAME_FIELD should not be included in REQUIRED_FIELDS on a swappable User model.')
+
+        # Model isn't swapped; do field-specific validation.
         for f in opts.local_fields:
             if f.name == 'id' and not f.primary_key and opts.pk.name == 'id':
                 e.add(opts, '"%s": You can\'t use "id" as a field name, because each model automatically gets an "id" field if none of the fields have primary_key=True. You need to either remove/rename your "id" field or add primary_key=True to a field.' % f.name)
@@ -55,7 +77,7 @@ def get_validation_errors(outfile, app=None):
                     e.add(opts, '"%s": CharFields require a "max_length" attribute that is a positive integer.' % f.name)
             if isinstance(f, models.DecimalField):
                 decimalp_ok, mdigits_ok = False, False
-                decimalp_msg ='"%s": DecimalFields require a "decimal_places" attribute that is a non-negative integer.'
+                decimalp_msg = '"%s": DecimalFields require a "decimal_places" attribute that is a non-negative integer.'
                 try:
                     decimal_places = int(f.decimal_places)
                     if decimal_places < 0:
@@ -116,7 +138,12 @@ def get_validation_errors(outfile, app=None):
             # fields, m2m fields, m2m related objects or related objects
             if f.rel:
                 if f.rel.to not in models.get_models():
-                    e.add(opts, "'%s' has a relation with model %s, which has either not been installed or is abstract." % (f.name, f.rel.to))
+                    # If the related model is swapped, provide a hint;
+                    # otherwise, the model just hasn't been installed.
+                    if not isinstance(f.rel.to, six.string_types) and f.rel.to._meta.swapped:
+                        e.add(opts, "'%s' defines a relation with the model '%s.%s', which has been swapped out. Update the relation to point at settings.%s." % (f.name, f.rel.to._meta.app_label, f.rel.to._meta.object_name, f.rel.to._meta.swappable))
+                    else:
+                        e.add(opts, "'%s' has a relation with model %s, which has either not been installed or is abstract." % (f.name, f.rel.to))
                 # it is a string and we could not find the model it refers to
                 # so skip the next section
                 if isinstance(f.rel.to, six.string_types):
@@ -158,7 +185,13 @@ def get_validation_errors(outfile, app=None):
             # existing fields, m2m fields, m2m related objects or related
             # objects
             if f.rel.to not in models.get_models():
-                e.add(opts, "'%s' has an m2m relation with model %s, which has either not been installed or is abstract." % (f.name, f.rel.to))
+                # If the related model is swapped, provide a hint;
+                # otherwise, the model just hasn't been installed.
+                if not isinstance(f.rel.to, six.string_types) and f.rel.to._meta.swapped:
+                    e.add(opts, "'%s' defines a relation with the model '%s.%s', which has been swapped out. Update the relation to point at settings.%s." % (f.name, f.rel.to._meta.app_label, f.rel.to._meta.object_name, f.rel.to._meta.swappable))
+                else:
+                    e.add(opts, "'%s' has an m2m relation with model %s, which has either not been installed or is abstract." % (f.name, f.rel.to))
+
                 # it is a string and we could not find the model it refers to
                 # so skip the next section
                 if isinstance(f.rel.to, six.string_types):
@@ -175,7 +208,7 @@ def get_validation_errors(outfile, app=None):
                 seen_from, seen_to, seen_self = False, False, 0
                 for inter_field in f.rel.through._meta.fields:
                     rel_to = getattr(inter_field.rel, 'to', None)
-                    if from_model == to_model: # relation to self
+                    if from_model == to_model:  # relation to self
                         if rel_to == from_model:
                             seen_self += 1
                         if seen_self > 2:
@@ -277,7 +310,8 @@ def get_validation_errors(outfile, app=None):
         # Check ordering attribute.
         if opts.ordering:
             for field_name in opts.ordering:
-                if field_name == '?': continue
+                if field_name == '?':
+                    continue
                 if field_name.startswith('-'):
                     field_name = field_name[1:]
                 if opts.order_with_respect_to and field_name == '_order':
@@ -297,15 +331,29 @@ def get_validation_errors(outfile, app=None):
 
         # Check unique_together.
         for ut in opts.unique_together:
-            for field_name in ut:
-                try:
-                    f = opts.get_field(field_name, many_to_many=True)
-                except models.FieldDoesNotExist:
-                    e.add(opts, '"unique_together" refers to %s, a field that doesn\'t exist. Check your syntax.' % field_name)
-                else:
-                    if isinstance(f.rel, models.ManyToManyRel):
-                        e.add(opts, '"unique_together" refers to %s. ManyToManyFields are not supported in unique_together.' % f.name)
-                    if f not in opts.local_fields:
-                        e.add(opts, '"unique_together" refers to %s. This is not in the same model as the unique_together statement.' % f.name)
+            validate_local_fields(e, opts, "unique_together", ut)
+        if not isinstance(opts.index_together, collections.Sequence):
+            e.add(opts, '"index_together" must a sequence')
+        else:
+            for it in opts.index_together:
+                validate_local_fields(e, opts, "index_together", it)
 
     return len(e.errors)
+
+
+def validate_local_fields(e, opts, field_name, fields):
+    from django.db import models
+
+    if not isinstance(fields, collections.Sequence):
+        e.add(opts, 'all %s elements must be sequences' % field_name)
+    else:
+        for field in fields:
+            try:
+                f = opts.get_field(field, many_to_many=True)
+            except models.FieldDoesNotExist:
+                e.add(opts, '"%s" refers to %s, a field that doesn\'t exist.' % (field_name, field))
+            else:
+                if isinstance(f.rel, models.ManyToManyRel):
+                    e.add(opts, '"%s" refers to %s. ManyToManyFields are not supported in %s.' % (field_name, f.name, field_name))
+                if f not in opts.local_fields:
+                    e.add(opts, '"%s" refers to %s. This is not in the same model as the %s statement.' % (field_name, f.name, field_name))

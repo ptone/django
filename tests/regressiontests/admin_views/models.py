@@ -128,6 +128,7 @@ class Color2(Color):
 class Thing(models.Model):
     title = models.CharField(max_length=20)
     color = models.ForeignKey(Color, limit_choices_to={'warm': True})
+    pub_date = models.DateField(blank=True, null=True)
     def __str__(self):
         return self.title
 
@@ -649,3 +650,17 @@ class UndeletableObject(models.Model):
     Refs #10057.
     """
     name = models.CharField(max_length=255)
+
+class UserMessenger(models.Model):
+    """
+    Dummy class for testing message_user functions on ModelAdmin
+    """
+
+class Simple(models.Model):
+    """
+    Simple model with nothing on it for use in testing
+    """
+
+class Choice(models.Model):
+    choice = models.IntegerField(blank=True, null=True,
+        choices=((1, 'Yes'), (0, 'No'), (None, 'No opinion')))

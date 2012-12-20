@@ -4,8 +4,9 @@ from __future__ import unicode_literals
 import copy
 import datetime
 
-from django.conf import settings
+from django.contrib.admin.tests import AdminSeleniumWebDriverTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
 from django.forms import *
 from django.forms.widgets import RadioFieldRenderer
 from django.utils import formats
@@ -13,7 +14,10 @@ from django.utils.safestring import mark_safe
 from django.utils import six
 from django.utils.translation import activate, deactivate
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.utils.encoding import python_2_unicode_compatible
+
+from ..models import Article
 
 
 class FormsWidgetTestCase(TestCase):
@@ -31,9 +35,9 @@ class FormsWidgetTestCase(TestCase):
         self.assertHTMLEqual(w.render('email', 'ŠĐĆŽćžšđ', attrs={'class': 'fun'}), '<input type="text" name="email" value="\u0160\u0110\u0106\u017d\u0107\u017e\u0161\u0111" class="fun" />')
 
         # You can also pass 'attrs' to the constructor:
-        w = TextInput(attrs={'class': 'fun'})
-        self.assertHTMLEqual(w.render('email', ''), '<input type="text" class="fun" name="email" />')
-        self.assertHTMLEqual(w.render('email', 'foo@example.com'), '<input type="text" class="fun" value="foo@example.com" name="email" />')
+        w = TextInput(attrs={'class': 'fun', 'type': 'email'})
+        self.assertHTMLEqual(w.render('email', ''), '<input type="email" class="fun" name="email" />')
+        self.assertHTMLEqual(w.render('email', 'foo@example.com'), '<input type="email" class="fun" value="foo@example.com" name="email" />')
 
         # 'attrs' passed to render() get precedence over those passed to the constructor:
         w = TextInput(attrs={'class': 'pretty'})
@@ -216,18 +220,18 @@ class FormsWidgetTestCase(TestCase):
         self.assertHTMLEqual(w.render('greeting', 'hello there'), '<input checked="checked" type="checkbox" name="greeting" value="hello there" />')
         self.assertHTMLEqual(w.render('greeting', 'hello & goodbye'), '<input checked="checked" type="checkbox" name="greeting" value="hello &amp; goodbye" />')
 
-        # A subtlety: If the 'check_test' argument cannot handle a value and raises any
-        # exception during its __call__, then the exception will be swallowed and the box
-        # will not be checked. In this example, the 'check_test' assumes the value has a
-        # startswith() method, which fails for the values True, False and None.
-        self.assertHTMLEqual(w.render('greeting', True), '<input type="checkbox" name="greeting" />')
-        self.assertHTMLEqual(w.render('greeting', False), '<input type="checkbox" name="greeting" />')
-        self.assertHTMLEqual(w.render('greeting', None), '<input type="checkbox" name="greeting" />')
+        # Ticket #17888: calling check_test shouldn't swallow exceptions
+        with self.assertRaises(AttributeError):
+            w.render('greeting', True)
 
         # The CheckboxInput widget will return False if the key is not found in the data
         # dictionary (because HTML form submission doesn't send any result for unchecked
         # checkboxes).
         self.assertFalse(w.value_from_datadict({}, {}, 'testing'))
+
+        value = w.value_from_datadict({'testing': '0'}, {}, 'testing')
+        self.assertIsInstance(value, bool)
+        self.assertTrue(value)
 
         self.assertFalse(w._has_changed(None, None))
         self.assertFalse(w._has_changed(None, ''))
@@ -919,8 +923,8 @@ beatle J R Ringo False""")
         self.assertHTMLEqual(w.render('date', datetime.datetime(2007, 9, 17, 12, 51)), '<input type="text" name="date" value="2007-09-17 12:51:00" />')
 
         # Use 'format' to change the way a value is displayed.
-        w = DateTimeInput(format='%d/%m/%Y %H:%M')
-        self.assertHTMLEqual(w.render('date', d), '<input type="text" name="date" value="17/09/2007 12:51" />')
+        w = DateTimeInput(format='%d/%m/%Y %H:%M', attrs={'type': 'datetime'})
+        self.assertHTMLEqual(w.render('date', d), '<input type="datetime" name="date" value="17/09/2007 12:51" />')
         self.assertFalse(w._has_changed(d, '17/09/2007 12:51'))
 
         # Make sure a custom format works with _has_changed. The hidden input will use
@@ -942,8 +946,8 @@ beatle J R Ringo False""")
         self.assertHTMLEqual(w.render('date', '2007-09-17'), '<input type="text" name="date" value="2007-09-17" />')
 
         # Use 'format' to change the way a value is displayed.
-        w = DateInput(format='%d/%m/%Y')
-        self.assertHTMLEqual(w.render('date', d), '<input type="text" name="date" value="17/09/2007" />')
+        w = DateInput(format='%d/%m/%Y', attrs={'type': 'date'})
+        self.assertHTMLEqual(w.render('date', d), '<input type="date" name="date" value="17/09/2007" />')
         self.assertFalse(w._has_changed(d, '17/09/2007'))
 
         # Make sure a custom format works with _has_changed. The hidden input will use
@@ -967,8 +971,8 @@ beatle J R Ringo False""")
         self.assertHTMLEqual(w.render('time', '13:12:11'), '<input type="text" name="time" value="13:12:11" />')
 
         # Use 'format' to change the way a value is displayed.
-        w = TimeInput(format='%H:%M')
-        self.assertHTMLEqual(w.render('time', t), '<input type="text" name="time" value="12:51" />')
+        w = TimeInput(format='%H:%M', attrs={'type': 'time'})
+        self.assertHTMLEqual(w.render('time', t), '<input type="time" name="time" value="12:51" />')
         self.assertFalse(w._has_changed(t, '12:51'))
 
         # Make sure a custom format works with _has_changed. The hidden input will use
@@ -993,16 +997,14 @@ class NullBooleanSelectLazyForm(Form):
     """Form to test for lazy evaluation. Refs #17190"""
     bool = BooleanField(widget=NullBooleanSelect())
 
+@override_settings(USE_L10N=True)
 class FormsI18NWidgetsTestCase(TestCase):
     def setUp(self):
         super(FormsI18NWidgetsTestCase, self).setUp()
-        self.old_use_l10n = getattr(settings, 'USE_L10N', False)
-        settings.USE_L10N = True
         activate('de-at')
 
     def tearDown(self):
         deactivate()
-        settings.USE_L10N = self.old_use_l10n
         super(FormsI18NWidgetsTestCase, self).tearDown()
 
     def test_splitdatetime(self):
@@ -1095,6 +1097,22 @@ class WidgetTests(TestCase):
         self.assertFalse(form.is_valid())
         form = SplitDateRequiredForm({'field': ['', '']})
         self.assertFalse(form.is_valid())
+
+
+class LiveWidgetTests(AdminSeleniumWebDriverTestCase):
+    urls = 'regressiontests.forms.urls'
+
+    def test_textarea_trailing_newlines(self):
+        """
+        Test that a roundtrip on a ModelForm doesn't alter the TextField value
+        """
+        article = Article.objects.create(content="\nTst\n")
+        self.selenium.get('%s%s' % (self.live_server_url,
+            reverse('article_form', args=[article.pk])))
+        self.selenium.find_element_by_id('submit').submit()
+        article = Article.objects.get(pk=article.pk)
+        # Should be "\nTst\n" after #19251 is fixed
+        self.assertEqual(article.content, "\r\nTst\r\n")
 
 
 @python_2_unicode_compatible

@@ -21,7 +21,7 @@ from django.http import SimpleCookie, HttpRequest, QueryDict
 from django.template import TemplateDoesNotExist
 from django.test import signals
 from django.utils.functional import curry
-from django.utils.encoding import smart_bytes
+from django.utils.encoding import force_bytes
 from django.utils.http import urlencode
 from django.utils.importlib import import_module
 from django.utils.itercompat import is_iterable
@@ -43,17 +43,33 @@ class FakePayload(object):
     length. This makes sure that views can't do anything under the test client
     that wouldn't work in Real Life.
     """
-    def __init__(self, content):
-        self.__content = BytesIO(content)
-        self.__len = len(content)
+    def __init__(self, content=None):
+        self.__content = BytesIO()
+        self.__len = 0
+        self.read_started = False
+        if content is not None:
+            self.write(content)
+
+    def __len__(self):
+        return self.__len
 
     def read(self, num_bytes=None):
+        if not self.read_started:
+            self.__content.seek(0)
+            self.read_started = True
         if num_bytes is None:
             num_bytes = self.__len or 0
         assert self.__len >= num_bytes, "Cannot read more than the available bytes from the HTTP incoming data."
         content = self.__content.read(num_bytes)
         self.__len -= num_bytes
         return content
+
+    def write(self, content):
+        if self.read_started:
+            raise ValueError("Unable to write a payload after he's been read")
+        content = force_bytes(content)
+        self.__content.write(content)
+        self.__len += len(content)
 
 
 class ClientHandler(BaseHandler):
@@ -110,7 +126,7 @@ def encode_multipart(boundary, data):
     as an application/octet-stream; otherwise, str(value) will be sent.
     """
     lines = []
-    to_bytes = lambda s: smart_bytes(s, settings.DEFAULT_CHARSET)
+    to_bytes = lambda s: force_bytes(s, settings.DEFAULT_CHARSET)
 
     # Not by any means perfect, but good enough for our purposes.
     is_file = lambda thing: hasattr(thing, "read") and callable(thing.read)
@@ -147,7 +163,7 @@ def encode_multipart(boundary, data):
     return b'\r\n'.join(lines)
 
 def encode_file(boundary, key, file):
-    to_bytes = lambda s: smart_bytes(s, settings.DEFAULT_CHARSET)
+    to_bytes = lambda s: force_bytes(s, settings.DEFAULT_CHARSET)
     content_type = mimetypes.guess_type(file.name)[0]
     if content_type is None:
         content_type = 'application/octet-stream'
@@ -222,7 +238,7 @@ class RequestFactory(object):
                 charset = match.group(1)
             else:
                 charset = settings.DEFAULT_CHARSET
-            return smart_bytes(data, encoding=charset)
+            return force_bytes(data, encoding=charset)
 
     def _get_path(self, parsed):
         # If there are parameters, add them
@@ -293,7 +309,7 @@ class RequestFactory(object):
     def generic(self, method, path,
                 data='', content_type='application/octet-stream', **extra):
         parsed = urlparse(path)
-        data = smart_bytes(data, settings.DEFAULT_CHARSET)
+        data = force_bytes(data, settings.DEFAULT_CHARSET)
         r = {
             'PATH_INFO':      self._get_path(parsed),
             'QUERY_STRING':   parsed[4],

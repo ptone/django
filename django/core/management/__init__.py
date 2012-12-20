@@ -6,9 +6,11 @@ import imp
 import warnings
 
 from django.apps import app_cache
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError, handle_default_options
 from django.core.management.color import color_style
 from django.utils.importlib import import_module
+from django.utils._os import upath
 from django.utils import six
 
 # For backwards compatibility: get_version() used to be in this module.
@@ -103,11 +105,14 @@ def get_commands():
         _commands = dict([(name, 'django.core') for name in find_commands(__path__[0])])
 
         # Find the installed apps
+        from django.conf import settings
         try:
             from django.apps import app_cache
             app_cache._populate()
             apps = app_cache.loaded_apps
-        except (AttributeError, EnvironmentError, ImportError):
+        except ImproperlyConfigured:
+            # Still useful for commands that do not require functional settings,
+            # like startproject or help
             apps = []
 
         # Find and load the management module for each installed app.
@@ -135,13 +140,14 @@ def call_command(name, *args, **options):
     # Load the command object.
     try:
         app_name = get_commands()[name]
-        if isinstance(app_name, BaseCommand):
-            # If the command is already loaded, use it directly.
-            klass = app_name
-        else:
-            klass = load_command_class(app_name, name)
     except KeyError:
         raise CommandError("Unknown command: %r" % name)
+
+    if isinstance(app_name, BaseCommand):
+        # If the command is already loaded, use it directly.
+        klass = app_name
+    else:
+        klass = load_command_class(app_name, name)
 
     # Grab out a list of defaults from the options. optparse does this for us
     # when the script runs from the command line, but since call_command can
@@ -408,10 +414,10 @@ def setup_environ(settings_mod, original_settings_path=None):
     # Add this project to sys.path so that it's importable in the conventional
     # way. For example, if this file (manage.py) lives in a directory
     # "myproject", this code would add "/path/to/myproject" to sys.path.
-    if '__init__.py' in settings_mod.__file__:
-        p = os.path.dirname(settings_mod.__file__)
+    if '__init__.py' in upath(settings_mod.__file__):
+        p = os.path.dirname(upath(settings_mod.__file__))
     else:
-        p = settings_mod.__file__
+        p = upath(settings_mod.__file__)
     project_directory, settings_filename = os.path.split(p)
     if project_directory == os.curdir or not project_directory:
         project_directory = os.getcwd()

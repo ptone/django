@@ -36,6 +36,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.forms import *
 from django.test import SimpleTestCase
 from django.utils import six
+from django.utils._os import upath
 
 
 def fix_os_paths(x):
@@ -356,6 +357,11 @@ class FieldsTests(SimpleTestCase):
         self.assertEqual(datetime.date(2006, 10, 25), f.clean(' 25 October 2006 '))
         self.assertRaisesMessage(ValidationError, "'Enter a valid date.'", f.clean, '   ')
 
+    def test_datefield_5(self):
+        # Test null bytes (#18982)
+        f = DateField()
+        self.assertRaisesMessage(ValidationError, "'Enter a valid date.'", f.clean, 'a\x00b')
+
     # TimeField ###################################################################
 
     def test_timefield_1(self):
@@ -475,7 +481,7 @@ class FieldsTests(SimpleTestCase):
     def test_regexfield_5(self):
         f = RegexField('^\d+$', min_length=5, max_length=10)
         self.assertRaisesMessage(ValidationError, "'Ensure this value has at least 5 characters (it has 3).'", f.clean, '123')
-        self.assertRaisesRegexp(ValidationError, "'Ensure this value has at least 5 characters \(it has 3\)\.', u?'Enter a valid value\.'", f.clean, 'abc')
+        six.assertRaisesRegex(self, ValidationError, "'Ensure this value has at least 5 characters \(it has 3\)\.', u?'Enter a valid value\.'", f.clean, 'abc')
         self.assertEqual('12345', f.clean('12345'))
         self.assertEqual('1234567890', f.clean('1234567890'))
         self.assertRaisesMessage(ValidationError, "'Ensure this value has at most 10 characters (it has 11).'", f.clean, '12345678901')
@@ -496,46 +502,33 @@ class FieldsTests(SimpleTestCase):
         self.assertRaisesMessage(ValidationError, "'Enter a valid value.'", f.clean, 'abcd')
 
     # EmailField ##################################################################
+    # See also modeltests/validators tests for validate_email specific tests
 
     def test_emailfield_1(self):
         f = EmailField()
         self.assertRaisesMessage(ValidationError, "'This field is required.'", f.clean, '')
         self.assertRaisesMessage(ValidationError, "'This field is required.'", f.clean, None)
         self.assertEqual('person@example.com', f.clean('person@example.com'))
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'foo')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'foo@')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'foo@bar')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'example@invalid-.com')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'example@-invalid.com')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'example@inv-.alid-.com')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'example@inv-.-alid.com')
-        self.assertEqual('example@valid-----hyphens.com', f.clean('example@valid-----hyphens.com'))
-        self.assertEqual('example@valid-with-hyphens.com', f.clean('example@valid-with-hyphens.com'))
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'example@.com')
-        self.assertEqual('local@domain.with.idn.xyz\xe4\xf6\xfc\xdfabc.part.com', f.clean('local@domain.with.idn.xyzäöüßabc.part.com'))
+        self.assertRaisesMessage(ValidationError, "'Enter a valid email address.'", f.clean, 'foo')
+        self.assertEqual('local@domain.with.idn.xyz\xe4\xf6\xfc\xdfabc.part.com',
+            f.clean('local@domain.with.idn.xyzäöüßabc.part.com'))
 
     def test_email_regexp_for_performance(self):
         f = EmailField()
         # Check for runaway regex security problem. This will take for-freeking-ever
         # if the security fix isn't in place.
-        self.assertRaisesMessage(
-                ValidationError,
-                "'Enter a valid e-mail address.'",
-                f.clean,
-                'viewx3dtextx26qx3d@yahoo.comx26latlngx3d15854521645943074058'
-            )
+        addr = 'viewx3dtextx26qx3d@yahoo.comx26latlngx3d15854521645943074058'
+        self.assertEqual(addr, f.clean(addr))
 
-    def test_emailfield_2(self):
+    def test_emailfield_not_required(self):
         f = EmailField(required=False)
         self.assertEqual('', f.clean(''))
         self.assertEqual('', f.clean(None))
         self.assertEqual('person@example.com', f.clean('person@example.com'))
         self.assertEqual('example@example.com', f.clean('      example@example.com  \t   \t '))
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'foo')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'foo@')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'foo@bar')
+        self.assertRaisesMessage(ValidationError, "'Enter a valid email address.'", f.clean, 'foo')
 
-    def test_emailfield_3(self):
+    def test_emailfield_min_max_length(self):
         f = EmailField(min_length=10, max_length=15)
         self.assertRaisesMessage(ValidationError, "'Ensure this value has at least 10 characters (it has 9).'", f.clean, 'a@foo.com')
         self.assertEqual('alf@foo.com', f.clean('alf@foo.com'))
@@ -921,7 +914,7 @@ class FieldsTests(SimpleTestCase):
         f = ComboField(fields=[CharField(max_length=20), EmailField()])
         self.assertEqual('test@example.com', f.clean('test@example.com'))
         self.assertRaisesMessage(ValidationError, "'Ensure this value has at most 20 characters (it has 28).'", f.clean, 'longemailaddress@example.com')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'not an e-mail')
+        self.assertRaisesMessage(ValidationError, "'Enter a valid email address.'", f.clean, 'not an email')
         self.assertRaisesMessage(ValidationError, "'This field is required.'", f.clean, '')
         self.assertRaisesMessage(ValidationError, "'This field is required.'", f.clean, None)
 
@@ -929,19 +922,19 @@ class FieldsTests(SimpleTestCase):
         f = ComboField(fields=[CharField(max_length=20), EmailField()], required=False)
         self.assertEqual('test@example.com', f.clean('test@example.com'))
         self.assertRaisesMessage(ValidationError, "'Ensure this value has at most 20 characters (it has 28).'", f.clean, 'longemailaddress@example.com')
-        self.assertRaisesMessage(ValidationError, "'Enter a valid e-mail address.'", f.clean, 'not an e-mail')
+        self.assertRaisesMessage(ValidationError, "'Enter a valid email address.'", f.clean, 'not an email')
         self.assertEqual('', f.clean(''))
         self.assertEqual('', f.clean(None))
 
     # FilePathField ###############################################################
 
     def test_filepathfield_1(self):
-        path = os.path.abspath(forms.__file__)
+        path = os.path.abspath(upath(forms.__file__))
         path = os.path.dirname(path) + '/'
         self.assertTrue(fix_os_paths(path).endswith('/django/forms/'))
 
     def test_filepathfield_2(self):
-        path = forms.__file__
+        path = upath(forms.__file__)
         path = os.path.dirname(os.path.abspath(path)) + '/'
         f = FilePathField(path=path)
         f.choices = [p for p in f.choices if p[0].endswith('.py')]
@@ -962,7 +955,7 @@ class FieldsTests(SimpleTestCase):
         assert fix_os_paths(f.clean(path + 'fields.py')).endswith('/django/forms/fields.py')
 
     def test_filepathfield_3(self):
-        path = forms.__file__
+        path = upath(forms.__file__)
         path = os.path.dirname(os.path.abspath(path)) + '/'
         f = FilePathField(path=path, match='^.*?\.py$')
         f.choices.sort()
@@ -980,7 +973,7 @@ class FieldsTests(SimpleTestCase):
             self.assertTrue(got[0].endswith(exp[0]))
 
     def test_filepathfield_4(self):
-        path = os.path.abspath(forms.__file__)
+        path = os.path.abspath(upath(forms.__file__))
         path = os.path.dirname(path) + '/'
         f = FilePathField(path=path, recursive=True, match='^.*?\.py$')
         f.choices.sort()
@@ -1000,7 +993,7 @@ class FieldsTests(SimpleTestCase):
             self.assertTrue(got[0].endswith(exp[0]))
 
     def test_filepathfield_folders(self):
-        path = os.path.dirname(__file__) + '/filepath_test_files/'
+        path = os.path.dirname(upath(__file__)) + '/filepath_test_files/'
         f = FilePathField(path=path, allow_folders=True, allow_files=False)
         f.choices.sort()
         expected = [
@@ -1036,7 +1029,7 @@ class FieldsTests(SimpleTestCase):
         self.assertRaisesMessage(ValidationError, "'This field is required.'", f.clean, None)
         self.assertRaisesMessage(ValidationError, "'This field is required.'", f.clean, '')
         self.assertRaisesMessage(ValidationError, "'Enter a list of values.'", f.clean, 'hello')
-        self.assertRaisesRegexp(ValidationError, "'Enter a valid date\.', u?'Enter a valid time\.'", f.clean, ['hello', 'there'])
+        six.assertRaisesRegex(self, ValidationError, "'Enter a valid date\.', u?'Enter a valid time\.'", f.clean, ['hello', 'there'])
         self.assertRaisesMessage(ValidationError, "'Enter a valid time.'", f.clean, ['2006-01-10', 'there'])
         self.assertRaisesMessage(ValidationError, "'Enter a valid date.'", f.clean, ['hello', '07:30'])
 
@@ -1049,7 +1042,7 @@ class FieldsTests(SimpleTestCase):
         self.assertEqual(None, f.clean(['']))
         self.assertEqual(None, f.clean(['', '']))
         self.assertRaisesMessage(ValidationError, "'Enter a list of values.'", f.clean, 'hello')
-        self.assertRaisesRegexp(ValidationError, "'Enter a valid date\.', u?'Enter a valid time\.'", f.clean, ['hello', 'there'])
+        six.assertRaisesRegex(self, ValidationError, "'Enter a valid date\.', u?'Enter a valid time\.'", f.clean, ['hello', 'there'])
         self.assertRaisesMessage(ValidationError, "'Enter a valid time.'", f.clean, ['2006-01-10', 'there'])
         self.assertRaisesMessage(ValidationError, "'Enter a valid date.'", f.clean, ['hello', '07:30'])
         self.assertRaisesMessage(ValidationError, "'Enter a valid time.'", f.clean, ['2006-01-10', ''])

@@ -23,7 +23,26 @@ from django.utils import unittest
 from . import models
 
 
+class DummyBackendTest(TestCase):
+    def test_no_databases(self):
+        """
+        Test that empty DATABASES setting default to the dummy backend.
+        """
+        DATABASES = {}
+        conns = ConnectionHandler(DATABASES)
+        self.assertEqual(conns[DEFAULT_DB_ALIAS].settings_dict['ENGINE'],
+            'django.db.backends.dummy')
+
+
 class OracleChecks(unittest.TestCase):
+
+    @unittest.skipUnless(connection.vendor == 'oracle',
+                         "No need to check Oracle quote_name semantics")
+    def test_quote_name(self):
+        # Check that '%' chars are escaped for query execution.
+        name = '"SOME%NAME"'
+        quoted_name = connection.ops.quote_name(name)
+        self.assertEquals(quoted_name % (), name)
 
     @unittest.skipUnless(connection.vendor == 'oracle',
                          "No need to check Oracle cursor semantics")
@@ -401,6 +420,19 @@ class BackendTestCase(TestCase):
         self.assertEqual(list(cursor.fetchmany(2)), [('Jane', 'Doe'), ('John', 'Doe')])
         self.assertEqual(list(cursor.fetchall()), [('Mary', 'Agnelline'), ('Peter', 'Parker')])
 
+    def test_unicode_password(self):
+        old_password = connection.settings_dict['PASSWORD']
+        connection.settings_dict['PASSWORD'] = "françois"
+        try:
+            cursor = connection.cursor()
+        except backend.Database.DatabaseError:
+            # As password is probably wrong, a database exception is expected
+            pass
+        except Exception as e:
+            self.fail("Unexpected error raised with unicode password: %s" % e)
+        finally:
+            connection.settings_dict['PASSWORD'] = old_password
+
     def test_database_operations_helper_class(self):
         # Ticket #13630
         self.assertTrue(hasattr(connection, 'ops'))
@@ -527,21 +559,30 @@ class ThreadTests(TestCase):
         """
         connections_set = set()
         connection.cursor()
-        connections_set.add(connection.connection)
+        connections_set.add(connection)
         def runner():
-            from django.db import connection
+            # Passing django.db.connection between threads doesn't work while
+            # connections[DEFAULT_DB_ALIAS] does.
+            from django.db import connections
+            connection = connections[DEFAULT_DB_ALIAS]
+            # Allow thread sharing so the connection can be closed by the
+            # main thread.
+            connection.allow_thread_sharing = True
             connection.cursor()
-            connections_set.add(connection.connection)
+            connections_set.add(connection)
         for x in range(2):
             t = threading.Thread(target=runner)
             t.start()
             t.join()
-        self.assertEqual(len(connections_set), 3)
+        # Check that each created connection got different inner connection.
+        self.assertEqual(
+            len(set([conn.connection for conn in connections_set])),
+            3)
         # Finish by closing the connections opened by the other threads (the
         # connection opened in the main thread will automatically be closed on
         # teardown).
         for conn in connections_set:
-            if conn != connection.connection:
+            if conn is not connection:
                 conn.close()
 
     def test_connections_thread_local(self):
@@ -568,7 +609,7 @@ class ThreadTests(TestCase):
         # connection opened in the main thread will automatically be closed on
         # teardown).
         for conn in connections_set:
-            if conn != connection:
+            if conn is not connection:
                 conn.close()
 
     def test_pass_connection_between_threads(self):
@@ -651,13 +692,6 @@ class ThreadTests(TestCase):
         t1.join()
         # No exception was raised
         self.assertEqual(len(exceptions), 0)
-
-
-class BackendLoadingTests(TestCase):
-    def test_old_style_backends_raise_useful_exception(self):
-        self.assertRaisesRegexp(ImproperlyConfigured,
-            "Try using django.db.backends.sqlite3 instead",
-            load_backend, 'sqlite3')
 
 
 class MySQLPKZeroTests(TestCase):

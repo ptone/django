@@ -5,6 +5,7 @@ from __future__ import absolute_import, unicode_literals
 import os
 import re
 
+from django.core.serializers.base import DeserializationError
 from django.core import management
 from django.core.management.base import CommandError
 from django.core.management.commands.dumpdata import sort_dependencies
@@ -13,6 +14,9 @@ from django.db.models import signals
 from django.test import (TestCase, TransactionTestCase, skipIfDBFeature,
     skipUnlessDBFeature)
 from django.test.utils import override_settings
+from django.utils.encoding import force_text
+from django.utils._os import upath
+from django.utils import six
 from django.utils.six import PY3, StringIO
 
 from .models import (Animal, Stuff, Absolute, Parent, Child, Article, Widget,
@@ -20,18 +24,16 @@ from .models import (Animal, Stuff, Absolute, Parent, Child, Article, Widget,
     ExternalDependency, Thingy)
 
 
-pre_save_checks = []
-def animal_pre_save_check(signal, sender, instance, **kwargs):
-    "A signal that is used to check the type of data loaded from fixtures"
-    pre_save_checks.append(
-        (
-            'Count = %s (%s)' % (instance.count, type(instance.count)),
-            'Weight = %s (%s)' % (instance.weight, type(instance.weight)),
-        )
-    )
-
-
 class TestFixtures(TestCase):
+
+    def animal_pre_save_check(self, signal, sender, instance, **kwargs):
+        self.pre_save_checks.append(
+            (
+                'Count = %s (%s)' % (instance.count, type(instance.count)),
+                'Weight = %s (%s)' % (instance.weight, type(instance.weight)),
+            )
+        )
+
     def test_duplicate_pk(self):
         """
         This is a regression test for ticket #3790.
@@ -55,6 +57,34 @@ class TestFixtures(TestCase):
         )
         animal.save()
         self.assertGreater(animal.id, 1)
+
+    def test_loaddata_not_found_fields_not_ignore(self):
+        """
+        Test for ticket #9279 -- Error is raised for entries in
+        the serialised data for fields that have been removed
+        from the database when not ignored.
+        """
+        with self.assertRaises(DeserializationError):
+            management.call_command(
+                'loaddata',
+                'sequence_extra',
+                verbosity=0
+            )
+
+    def test_loaddata_not_found_fields_ignore(self):
+        """
+        Test for ticket #9279 -- Ignores entries in
+        the serialised data for fields that have been removed
+        from the database.
+        """
+        management.call_command(
+            'loaddata',
+            'sequence_extra',
+            ignore=True,
+            verbosity=0,
+            commit=False
+        )
+        self.assertEqual(Animal.specimens.all()[0].name, 'Lion')
 
     @skipIfDBFeature('interprets_empty_strings_as_nulls')
     def test_pretty_print_xml(self):
@@ -98,7 +128,7 @@ class TestFixtures(TestCase):
         fixture directory.
         """
         load_absolute_path = os.path.join(
-            os.path.dirname(__file__),
+            os.path.dirname(upath(__file__)),
             'fixtures',
             'absolute.json'
         )
@@ -110,13 +140,12 @@ class TestFixtures(TestCase):
         )
         self.assertEqual(Absolute.load_count, 1)
 
-
     def test_unknown_format(self):
         """
         Test for ticket #4371 -- Loading data of an unknown format should fail
         Validate that error conditions are caught correctly
         """
-        with self.assertRaisesRegexp(management.CommandError,
+        with six.assertRaisesRegex(self, management.CommandError,
                 "Problem installing fixture 'bad_fixture1': "
                 "unkn is not a known serialization format."):
             management.call_command(
@@ -131,8 +160,8 @@ class TestFixtures(TestCase):
         """
         Test that failing serializer import raises the proper error
         """
-        with self.assertRaisesRegexp(ImportError,
-                "No module named unexistent.path"):
+        with six.assertRaisesRegex(self, ImportError,
+                r"No module named.*unexistent"):
             management.call_command(
                 'loaddata',
                 'bad_fixture1.unkn',
@@ -146,7 +175,7 @@ class TestFixtures(TestCase):
         using explicit filename.
         Validate that error conditions are caught correctly
         """
-        with self.assertRaisesRegexp(management.CommandError,
+        with six.assertRaisesRegex(self, management.CommandError,
                 "No fixture data found for 'bad_fixture2'. \(File format may be invalid.\)"):
             management.call_command(
                 'loaddata',
@@ -161,7 +190,7 @@ class TestFixtures(TestCase):
         without file extension.
         Validate that error conditions are caught correctly
         """
-        with self.assertRaisesRegexp(management.CommandError,
+        with six.assertRaisesRegex(self, management.CommandError,
                 "No fixture data found for 'bad_fixture2'. \(File format may be invalid.\)"):
             management.call_command(
                 'loaddata',
@@ -175,7 +204,7 @@ class TestFixtures(TestCase):
         Test for ticket #4371 -- Loading a fixture file with no data returns an error.
         Validate that error conditions are caught correctly
         """
-        with self.assertRaisesRegexp(management.CommandError,
+        with six.assertRaisesRegex(self, management.CommandError,
                 "No fixture data found for 'empty'. \(File format may be invalid.\)"):
             management.call_command(
                 'loaddata',
@@ -188,7 +217,7 @@ class TestFixtures(TestCase):
         """
         (Regression for #9011 - error message is correct)
         """
-        with self.assertRaisesRegexp(management.CommandError,
+        with six.assertRaisesRegex(self, management.CommandError,
                 "^No fixture data found for 'bad_fixture2'. \(File format may be invalid.\)$"):
             management.call_command(
                 'loaddata',
@@ -245,9 +274,8 @@ class TestFixtures(TestCase):
         Test for tickets #8298, #9942 - Field values should be coerced into the
         correct type by the deserializer, not as part of the database write.
         """
-        global pre_save_checks
-        pre_save_checks = []
-        signals.pre_save.connect(animal_pre_save_check)
+        self.pre_save_checks = []
+        signals.pre_save.connect(self.animal_pre_save_check)
         try:
             management.call_command(
                 'loaddata',
@@ -256,14 +284,14 @@ class TestFixtures(TestCase):
                 commit=False,
             )
             self.assertEqual(
-                pre_save_checks,
+                self.pre_save_checks,
                 [
                     ("Count = 42 (<%s 'int'>)" % ('class' if PY3 else 'type'),
                      "Weight = 1.2 (<%s 'float'>)" % ('class' if PY3 else 'type'))
                 ]
             )
         finally:
-            signals.pre_save.disconnect(animal_pre_save_check)
+            signals.pre_save.disconnect(self.animal_pre_save_check)
 
     def test_dumpdata_uses_default_manager(self):
         """
@@ -353,7 +381,7 @@ class TestFixtures(TestCase):
         """
         Regression for #3615 - Ensure data with nonexistent child key references raises error
         """
-        with self.assertRaisesRegexp(IntegrityError,
+        with six.assertRaisesRegex(self, IntegrityError,
                 "Problem installing fixture"):
             management.call_command(
                 'loaddata',
@@ -362,7 +390,7 @@ class TestFixtures(TestCase):
                 commit=False,
             )
 
-    _cur_dir = os.path.dirname(os.path.abspath(__file__))
+    _cur_dir = os.path.dirname(os.path.abspath(upath(__file__)))
 
     @override_settings(FIXTURE_DIRS=[os.path.join(_cur_dir, 'fixtures_1'),
                                      os.path.join(_cur_dir, 'fixtures_2')])
@@ -385,7 +413,7 @@ class TestFixtures(TestCase):
         """
         Regression for #7043 - Error is quickly reported when no fixtures is provided in the command line.
         """
-        with self.assertRaisesRegexp(management.CommandError,
+        with six.assertRaisesRegex(self, management.CommandError,
                 "No database fixture specified. Please provide the path of "
                 "at least one fixture in the command line."):
             management.call_command(
@@ -404,7 +432,7 @@ class TestFixtures(TestCase):
             stdout=stdout_output,
         )
         self.assertTrue("No xml fixture 'this_fixture_doesnt_exist' in" in
-            stdout_output.getvalue())
+            force_text(stdout_output.getvalue()))
 
 
 class NaturalKeyFixtureTests(TestCase):

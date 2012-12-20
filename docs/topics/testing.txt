@@ -73,8 +73,6 @@ module defines tests in class-based approach.
 
 .. admonition:: unittest2
 
-    .. versionchanged:: 1.3
-
     Python 2.7 introduced some major changes to the unittest library,
     adding some extremely useful features. To ensure that every Django
     project can benefit from these new features, Django ships with a
@@ -117,8 +115,8 @@ Here is an example :class:`unittest.TestCase` subclass::
 
     class AnimalTestCase(unittest.TestCase):
         def setUp(self):
-            self.lion = Animal.objects.create(name="lion", sound="roar")
-            self.cat = Animal.objects.create(name="cat", sound="meow")
+            self.lion = Animal(name="lion", sound="roar")
+            self.cat = Animal(name="cat", sound="meow")
 
         def test_animals_can_speak(self):
             """Animals that can speak are correctly identified"""
@@ -140,6 +138,18 @@ suite.
 For more details about :mod:`unittest`, see the Python documentation.
 
 .. _suggested organization: http://docs.python.org/library/unittest.html#organizing-tests
+
+.. warning::
+
+    If your tests rely on database access such as creating or querying models,
+    be sure to create your test classes as subclasses of
+    :class:`django.test.TestCase` rather than :class:`unittest.TestCase`.
+
+    In the example above, we instantiate some models but do not save them to
+    the database. Using :class:`unittest.TestCase` avoids the cost of running
+    each test in a transaction and flushing the database, but for most
+    applications the scope of tests you will be able to write this way will
+    be fairly limited, so it's easiest to use :class:`django.test.TestCase`.
 
 Writing doctests
 ----------------
@@ -345,7 +355,7 @@ This convenience method sets up the test database, and puts other
 Django features into modes that allow for repeatable testing.
 
 The call to :meth:`~django.test.utils.setup_test_environment` is made
-automatically as part of the setup of `./manage.py test`. You only
+automatically as part of the setup of ``./manage.py test``. You only
 need to manually invoke this method if you're not using running your
 tests via Django's test runner.
 
@@ -380,6 +390,15 @@ MySQL, you can also use the :setting:`TEST_COLLATION` option to
 control the particular collation used by the test database. See the
 :doc:`settings documentation </ref/settings>` for details of these
 advanced settings.
+
+.. admonition:: Finding data from your production database when running tests?
+
+    If your code attempts to access the database when its modules are compiled,
+    this will occur *before* the test database is set up, with potentially
+    unexpected results. For example, if you have a database query in
+    module-level code and a real database exists, production data could pollute
+    your tests. *It is a bad idea to have such import-time database queries in
+    your code* anyway - rewrite your code so that it doesn't do this.
 
 .. _topics-testing-masterslave:
 
@@ -435,8 +454,6 @@ two databases.
 
 Controlling creation order for test databases
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 1.3
 
 By default, Django will always create the ``default`` database first.
 However, no guarantees are made on the creation order of any other
@@ -512,6 +529,13 @@ file, all Django tests run with :setting:`DEBUG`\=False. This is to ensure that
 the observed output of your code matches what will be seen in a production
 setting.
 
+Caches are not cleared after each test, and running "manage.py test fooapp" can
+insert data from the tests into the cache of a live system if you run your
+tests in production because, unlike databases, a separate "test cache" is not
+used. This behavior `may change`_ in the future.
+
+.. _may change: https://code.djangoproject.com/ticket/11505
+
 Understanding the test output
 -----------------------------
 
@@ -585,6 +609,36 @@ to a faster hashing algorithm::
 
 Don't forget to also include in :setting:`PASSWORD_HASHERS` any hashing
 algorithm used in fixtures, if any.
+
+.. _topics-testing-code-coverage:
+
+Integration with coverage.py
+----------------------------
+
+Code coverage describes how much source code has been tested. It shows which
+parts of your code are being exercised by tests and which are not. It's an
+important part of testing applications, so it's strongly recommended to check
+the coverage of your tests.
+
+Django can be easily integrated with `coverage.py`_, a tool for measuring code
+coverage of Python programs. First, `install coverage.py`_. Next, run the
+following from your project folder containing ``manage.py``::
+
+   coverage run --source='.' manage.py test myapp
+
+This runs your tests and collects coverage data of the executed files in your
+project. You can see a report of this data by typing following command::
+
+   coverage report
+
+Note that some Django code was executed while running tests, but it is not
+listed here because of the ``source`` flag passed to the previous command.
+
+For more options like annotated HTML listings detailing missed lines, see the
+`coverage.py`_ docs.
+
+.. _coverage.py: http://nedbatchelder.com/code/coverage/
+.. _install coverage.py: http://pypi.python.org/pypi/coverage
 
 Testing tools
 =============
@@ -766,7 +820,7 @@ Use the ``django.test.client.Client`` class to make requests.
         and a ``redirect_chain`` attribute will be set in the response object
         containing tuples of the intermediate urls and status codes.
 
-        If you had an url ``/redirect_me/`` that redirected to ``/next/``, that
+        If you had a URL ``/redirect_me/`` that redirected to ``/next/``, that
         redirected to ``/final/``, this is what you'd see::
 
             >>> response = c.get('/redirect_me/', follow=True)
@@ -1001,8 +1055,6 @@ Specifically, a ``Response`` object has the following attributes:
         The HTTP status of the response, as an integer. See
         :rfc:`2616#section-10` for a full list of HTTP status codes.
 
-    .. versionadded:: 1.3
-
     .. attribute:: templates
 
         A list of ``Template`` instances used to render the final content, in
@@ -1089,8 +1141,6 @@ The request factory
 
 .. class:: RequestFactory
 
-.. versionadded:: 1.3
-
 The :class:`~django.test.client.RequestFactory` shares the same API as
 the test client. However, instead of behaving like a browser, the
 RequestFactory provides a way to generate a request instance that can
@@ -1148,10 +1198,15 @@ Normal Python unit test classes extend a base class of
 
 .. _testcase_hierarchy_diagram:
 
-.. figure:: _images/django_unittest_classes_hierarchy.png
+.. figure:: _images/django_unittest_classes_hierarchy.*
    :alt: Hierarchy of Django unit testing classes (TestCase subclasses)
+   :width: 508
+   :height: 391
 
    Hierarchy of Django unit testing classes
+
+Regardless of the version of Python you're using, if you've installed
+:mod:`unittest2`, :mod:`django.utils.unittest` will point to that library.
 
 TestCase
 ^^^^^^^^
@@ -1327,8 +1382,6 @@ This means, instead of instantiating a ``Client`` in each test::
 Customizing the test client
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.3
-
 .. attribute:: TestCase.client_class
 
 If you want to use a different ``Client`` class (for example, a subclass
@@ -1346,6 +1399,7 @@ attribute::
 
         def test_my_stuff(self):
             # Here self.client is an instance of MyTestClient...
+            call_some_test_code()
 
 .. _topics-testing-fixtures:
 
@@ -1559,15 +1613,24 @@ The decorator can also be applied to test case classes::
     the original ``LoginTestCase`` is still equally affected by the
     decorator.
 
-.. note::
+When overriding settings, make sure to handle the cases in which your app's
+code uses a cache or similar feature that retains state even if the
+setting is changed. Django provides the
+:data:`django.test.signals.setting_changed` signal that lets you register
+callbacks to clean up and otherwise reset state when settings are changed.
 
-    When overriding settings, make sure to handle the cases in which your app's
-    code uses a cache or similar feature that retains state even if the
-    setting is changed. Django provides the
-    :data:`django.test.signals.setting_changed` signal that lets you register
-    callbacks to clean up and otherwise reset state when settings are changed.
-    Note that this signal isn't currently used by Django itself, so changing
-    built-in settings may not yield the results you expect.
+Django itself uses this signal to reset various data:
+
+================================ ========================
+Overriden settings               Data reset
+================================ ========================
+USE_TZ, TIME_ZONE                Databases timezone
+TEMPLATE_CONTEXT_PROCESSORS      Context processors cache
+TEMPLATE_LOADERS                 Template loaders cache
+SERIALIZATION_MODULES            Serializers cache
+LOCALE_PATHS, LANGUAGE_CODE      Default translation and loaded translations
+MEDIA_ROOT, DEFAULT_FILE_STORAGE Default file storage
+================================ ========================
 
 Emptying the test outbox
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1625,7 +1688,7 @@ your test suite.
     "a@a.com" as a valid email address, but rejects "aaa" with a reasonable
     error message::
 
-        self.assertFieldOutput(EmailField, {'a@a.com': 'a@a.com'}, {'aaa': [u'Enter a valid e-mail address.']})
+        self.assertFieldOutput(EmailField, {'a@a.com': 'a@a.com'}, {'aaa': [u'Enter a valid email address.']})
 
 
 .. method:: TestCase.assertContains(response, text, count=None, status_code=200, msg_prefix='', html=False)
@@ -1708,8 +1771,6 @@ your test suite.
 
 .. method:: TestCase.assertQuerysetEqual(qs, values, transform=repr, ordered=True)
 
-    .. versionadded:: 1.3
-
     Asserts that a queryset ``qs`` returns a particular list of values ``values``.
 
     The comparison of the contents of ``qs`` and ``values`` is performed using
@@ -1727,10 +1788,13 @@ your test suite.
 	via an explicit ``order_by()`` call on the queryset prior to
 	comparison.
 
+    .. versionchanged:: 1.6
+        The method now checks for undefined order and raises ``ValueError``
+        if undefined order is spotted. The ordering is seen as undefined if
+        the given ``qs`` isn't ordered and the comparison is against more
+        than one ordered values.
 
 .. method:: TestCase.assertNumQueries(num, func, *args, **kwargs)
-
-    .. versionadded:: 1.3
 
     Asserts that when ``func`` is called with ``*args`` and ``**kwargs`` that
     ``num`` database queries are executed.
@@ -1789,6 +1853,25 @@ your test suite.
 
     ``html1`` and ``html2`` must be valid HTML. An ``AssertionError`` will be
     raised if one of them cannot be parsed.
+
+.. method:: SimpleTestCase.assertXMLEqual(xml1, xml2, msg=None)
+
+    .. versionadded:: 1.5
+
+    Asserts that the strings ``xml1`` and ``xml2`` are equal. The
+    comparison is based on XML semantics. Similarily to
+    :meth:`~SimpleTestCase.assertHTMLEqual`, the comparison is
+    made on parsed content, hence only semantic differences are considered, not
+    syntax differences. When unvalid XML is passed in any parameter, an
+    ``AssertionError`` is always raised, even if both string are identical.
+
+.. method:: SimpleTestCase.assertXMLNotEqual(xml1, xml2, msg=None)
+
+    .. versionadded:: 1.5
+
+    Asserts that the strings ``xml1`` and ``xml2`` are *not* equal. The
+    comparison is based on XML semantics. See
+    :meth:`~SimpleTestCase.assertXMLEqual` for details.
 
 .. _topics-testing-email:
 
@@ -1853,8 +1936,6 @@ Skipping tests
 --------------
 
 .. currentmodule:: django.test
-
-.. versionadded:: 1.3
 
 The unittest library provides the :func:`@skipIf <unittest.skipIf>` and
 :func:`@skipUnless <unittest.skipUnless>` decorators to allow you to skip tests
@@ -1982,8 +2063,8 @@ Then, add a ``LiveServerTestCase``-based test to your app's tests module
 
         @classmethod
         def tearDownClass(cls):
-            super(MySeleniumTests, cls).tearDownClass()
             cls.selenium.quit()
+            super(MySeleniumTests, cls).tearDownClass()
 
         def test_login(self):
             self.selenium.get('%s%s' % (self.live_server_url, '/login/'))
@@ -2035,11 +2116,12 @@ out the `full reference`_ for more details.
 
         def test_login(self):
             from selenium.webdriver.support.wait import WebDriverWait
+            timeout = 2
             ...
             self.selenium.find_element_by_xpath('//input[@value="Log in"]').click()
             # Wait until the response is received
             WebDriverWait(self.selenium, timeout).until(
-                lambda driver: driver.find_element_by_tag_name('body'), timeout=10)
+                lambda driver: driver.find_element_by_tag_name('body'))
 
     The tricky thing here is that there's really no such thing as a "page load,"
     especially in modern Web apps that generate HTML dynamically after the

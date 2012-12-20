@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 A series of tests to establish that the command-line managment tools work as
 advertised - especially with regards to the handling of the DJANGO_SETTINGS_MODULE
 and default settings.py files.
 """
+from __future__ import unicode_literals
 
 import os
 import re
@@ -10,19 +12,22 @@ import shutil
 import socket
 import subprocess
 import sys
+import codecs
 
 from django import conf, bin, get_version
 from django.conf import settings
 from django.db import connection
 from django.test.simple import DjangoTestSuiteRunner
 from django.utils import unittest
+from django.utils.encoding import force_str, force_text
+from django.utils._os import upath
 from django.test import LiveServerTestCase
 
-test_dir = os.path.dirname(os.path.dirname(__file__))
+test_dir = os.path.dirname(os.path.dirname(upath(__file__)))
 
 class AdminScriptTestCase(unittest.TestCase):
     def write_settings(self, filename, apps=None, is_dir=False, sdict=None):
-        test_dir = os.path.dirname(os.path.dirname(__file__))
+        test_dir = os.path.dirname(os.path.dirname(upath(__file__)))
         if is_dir:
             settings_dir = os.path.join(test_dir, filename)
             os.mkdir(settings_dir)
@@ -91,6 +96,7 @@ class AdminScriptTestCase(unittest.TestCase):
         return paths
 
     def run_test(self, script, args, settings_file=None, apps=None):
+        test_dir = os.path.dirname(os.path.dirname(__file__))
         project_dir = os.path.dirname(test_dir)
         base_dir = os.path.dirname(project_dir)
         ext_backend_base_dirs = self._ext_backend_paths()
@@ -131,11 +137,17 @@ class AdminScriptTestCase(unittest.TestCase):
         return out, err
 
     def run_django_admin(self, args, settings_file=None):
-        bin_dir = os.path.abspath(os.path.dirname(bin.__file__))
+        bin_dir = os.path.abspath(os.path.dirname(upath(bin.__file__)))
         return self.run_test(os.path.join(bin_dir, 'django-admin.py'), args, settings_file)
 
     def run_manage(self, args, settings_file=None):
-        conf_dir = os.path.dirname(conf.__file__)
+        def safe_remove(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+
+        conf_dir = os.path.dirname(upath(conf.__file__))
         template_manage_py = os.path.join(conf_dir, 'project_template', 'manage.py')
 
         test_manage_py = os.path.join(test_dir, 'manage.py')
@@ -147,13 +159,9 @@ class AdminScriptTestCase(unittest.TestCase):
             "{{ project_name }}", "regressiontests")
         with open(test_manage_py, 'w') as fp:
             fp.write(manage_py_contents)
+        self.addCleanup(safe_remove, test_manage_py)
 
-        stdout, stderr = self.run_test('./manage.py', args, settings_file)
-
-        # Cleanup - remove the generated manage.py script
-        os.remove(test_manage_py)
-
-        return stdout, stderr
+        return self.run_test('./manage.py', args, settings_file)
 
     def assertNoOutput(self, stream):
         "Utility assertion: assert that the given stream is empty"
@@ -161,10 +169,12 @@ class AdminScriptTestCase(unittest.TestCase):
 
     def assertOutput(self, stream, msg):
         "Utility assertion: assert that the given message exists in the output"
+        stream = force_text(stream)
         self.assertTrue(msg in stream, "'%s' does not match actual output text '%s'" % (msg, stream))
 
     def assertNotInOutput(self, stream, msg):
         "Utility assertion: assert that the given message doesn't exist in the output"
+        stream = force_text(stream)
         self.assertFalse(msg in stream, "'%s' matches actual output text '%s'" % (msg, stream))
 
 ##########################################################################
@@ -178,11 +188,11 @@ class DjangoAdminNoSettings(AdminScriptTestCase):
     "A series of tests for django-admin.py when there is no settings.py file."
 
     def test_builtin_command(self):
-        "no settings: django-admin builtin commands fail with an import error when no settings provided"
+        "no settings: django-admin builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_django_admin(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'environment variable DJANGO_SETTINGS_MODULE is undefined')
+        self.assertOutput(err, 'settings are not configured')
 
     def test_builtin_with_bad_settings(self):
         "no settings: django-admin builtin commands fail if settings file (from argument) doesn't exist"
@@ -210,11 +220,11 @@ class DjangoAdminDefaultSettings(AdminScriptTestCase):
         self.remove_settings('settings.py')
 
     def test_builtin_command(self):
-        "default: django-admin builtin commands fail with an import error when no settings provided"
+        "default: django-admin builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_django_admin(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'environment variable DJANGO_SETTINGS_MODULE is undefined')
+        self.assertOutput(err, 'settings are not configured')
 
     def test_builtin_with_settings(self):
         "default: django-admin builtin commands succeed if settings are provided as argument"
@@ -276,11 +286,11 @@ class DjangoAdminFullPathDefaultSettings(AdminScriptTestCase):
         self.remove_settings('settings.py')
 
     def test_builtin_command(self):
-        "fulldefault: django-admin builtin commands fail with an import error when no settings provided"
+        "fulldefault: django-admin builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_django_admin(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'environment variable DJANGO_SETTINGS_MODULE is undefined')
+        self.assertOutput(err, 'settings are not configured')
 
     def test_builtin_with_settings(self):
         "fulldefault: django-admin builtin commands succeed if a settings file is provided"
@@ -342,11 +352,11 @@ class DjangoAdminMinimalSettings(AdminScriptTestCase):
         self.remove_settings('settings.py')
 
     def test_builtin_command(self):
-        "minimal: django-admin builtin commands fail with an import error when no settings provided"
+        "minimal: django-admin builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_django_admin(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'environment variable DJANGO_SETTINGS_MODULE is undefined')
+        self.assertOutput(err, 'settings are not configured')
 
     def test_builtin_with_settings(self):
         "minimal: django-admin builtin commands fail if settings are provided as argument"
@@ -408,11 +418,11 @@ class DjangoAdminAlternateSettings(AdminScriptTestCase):
         self.remove_settings('alternate_settings.py')
 
     def test_builtin_command(self):
-        "alternate: django-admin builtin commands fail with an import error when no settings provided"
+        "alternate: django-admin builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_django_admin(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'environment variable DJANGO_SETTINGS_MODULE is undefined')
+        self.assertOutput(err, 'settings are not configured')
 
     def test_builtin_with_settings(self):
         "alternate: django-admin builtin commands succeed if settings are provided as argument"
@@ -479,11 +489,11 @@ class DjangoAdminMultipleSettings(AdminScriptTestCase):
         self.remove_settings('alternate_settings.py')
 
     def test_builtin_command(self):
-        "alternate: django-admin builtin commands fail with an import error when no settings provided"
+        "alternate: django-admin builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_django_admin(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'environment variable DJANGO_SETTINGS_MODULE is undefined')
+        self.assertOutput(err, 'settings are not configured')
 
     def test_builtin_with_settings(self):
         "alternate: django-admin builtin commands succeed if settings are provided as argument"
@@ -567,11 +577,11 @@ class DjangoAdminSettingsDirectory(AdminScriptTestCase):
         self.assertTrue(os.path.exists(os.path.join(app_path, 'api.py')))
 
     def test_builtin_command(self):
-        "directory: django-admin builtin commands fail with an import error when no settings provided"
+        "directory: django-admin builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_django_admin(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'environment variable DJANGO_SETTINGS_MODULE is undefined')
+        self.assertOutput(err, 'settings are not configured')
 
     def test_builtin_with_bad_settings(self):
         "directory: django-admin builtin commands fail if settings file (from argument) doesn't exist"
@@ -618,7 +628,7 @@ class ManageNoSettings(AdminScriptTestCase):
     "A series of tests for manage.py when there is no settings.py file."
 
     def test_builtin_command(self):
-        "no settings: manage.py builtin commands fail with an import error when no settings provided"
+        "no settings: manage.py builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_manage(args)
         self.assertNoOutput(out)
@@ -783,7 +793,7 @@ class ManageMinimalSettings(AdminScriptTestCase):
         self.remove_settings('settings.py')
 
     def test_builtin_command(self):
-        "minimal: manage.py builtin commands fail with an import error when no settings provided"
+        "minimal: manage.py builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_manage(args)
         self.assertNoOutput(out)
@@ -849,7 +859,7 @@ class ManageAlternateSettings(AdminScriptTestCase):
         self.remove_settings('alternate_settings.py')
 
     def test_builtin_command(self):
-        "alternate: manage.py builtin commands fail with an import error when no default settings provided"
+        "alternate: manage.py builtin commands fail with an error when no default settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_manage(args)
         self.assertNoOutput(out)
@@ -892,7 +902,7 @@ class ManageAlternateSettings(AdminScriptTestCase):
         args = ['noargs_command']
         out, err = self.run_manage(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, "Unknown command: 'noargs_command'")
+        self.assertOutput(err, "Could not import settings 'regressiontests.settings'")
 
     def test_custom_command_with_settings(self):
         "alternate: manage.py can execute user commands if settings are provided as argument"
@@ -924,7 +934,7 @@ class ManageMultipleSettings(AdminScriptTestCase):
         self.remove_settings('alternate_settings.py')
 
     def test_builtin_command(self):
-        "multiple: manage.py builtin commands fail with an import error when no settings provided"
+        "multiple: manage.py builtin commands fail with an error when no settings provided"
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_manage(args)
         self.assertNoOutput(out)
@@ -979,13 +989,11 @@ class ManageMultipleSettings(AdminScriptTestCase):
         self.assertNoOutput(err)
         self.assertOutput(out, "EXECUTE:NoArgsCommand")
 
+
 class ManageSettingsWithImportError(AdminScriptTestCase):
     """Tests for manage.py when using the default settings.py file
     with an import error. Ticket #14130.
     """
-    def setUp(self):
-        self.write_settings_with_import_error('settings.py')
-
     def tearDown(self):
         self.remove_settings('settings.py')
 
@@ -1001,11 +1009,27 @@ class ManageSettingsWithImportError(AdminScriptTestCase):
             settings_file.write('# The next line will cause an import error:\nimport foo42bar\n')
 
     def test_builtin_command(self):
-        "import error: manage.py builtin commands shows useful diagnostic info when settings with import errors is provided"
+        """
+        import error: manage.py builtin commands shows useful diagnostic info
+        when settings with import errors is provided
+        """
+        self.write_settings_with_import_error('settings.py')
         args = ['sqlall', 'admin_scripts']
         out, err = self.run_manage(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, "No module named foo42bar")
+        self.assertOutput(err, "No module named")
+        self.assertOutput(err, "foo42bar")
+
+    def test_builtin_command_with_attribute_error(self):
+        """
+        manage.py builtin commands does not swallow attribute errors from bad settings (#18845)
+        """
+        self.write_settings('settings.py', sdict={'BAD_VAR': 'INSTALLED_APPS.crash'})
+        args = ['collectstatic', 'admin_scripts']
+        out, err = self.run_manage(args)
+        self.assertNoOutput(out)
+        self.assertOutput(err, "AttributeError: 'list' object has no attribute 'crash'")
+
 
 class ManageValidate(AdminScriptTestCase):
     def tearDown(self):
@@ -1017,7 +1041,8 @@ class ManageValidate(AdminScriptTestCase):
         args = ['validate']
         out, err = self.run_manage(args)
         self.assertNoOutput(out)
-        self.assertOutput(err, 'No module named admin_scriptz')
+        self.assertOutput(err, 'No module named')
+        self.assertOutput(err, 'admin_scriptz')
 
     def test_broken_app(self):
         "manage.py validate reports an ImportError if an app's models.py raises one on import"
@@ -1392,9 +1417,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         "Make sure the startproject management command creates a project"
         args = ['startproject', 'testproject']
         testproject_dir = os.path.join(test_dir, 'testproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
 
@@ -1405,16 +1430,11 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
 
     def test_invalid_project_name(self):
         "Make sure the startproject management command validates a project name"
-
-        def cleanup(p):
-            if os.path.exists(p):
-                shutil.rmtree(p)
-
         args = ['startproject', '7testproject']
         testproject_dir = os.path.join(test_dir, '7testproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(cleanup, testproject_dir)
         self.assertOutput(err, "Error: '7testproject' is not a valid project name. Please make sure the name begins with a letter or underscore.")
         self.assertFalse(os.path.exists(testproject_dir))
 
@@ -1423,9 +1443,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         args = ['startproject', 'testproject', 'othertestproject']
         testproject_dir = os.path.join(test_dir, 'othertestproject')
         os.mkdir(testproject_dir)
+        self.addCleanup(shutil.rmtree, testproject_dir)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'manage.py')))
 
@@ -1439,9 +1459,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         template_path = os.path.join(test_dir, 'admin_scripts', 'custom_templates', 'project_template')
         args = ['startproject', '--template', template_path, 'customtestproject']
         testproject_dir = os.path.join(test_dir, 'customtestproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'additional_dir')))
@@ -1451,9 +1471,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         template_path = os.path.join(test_dir, 'admin_scripts', 'custom_templates', 'project_template' + os.sep)
         args = ['startproject', '--template', template_path, 'customtestproject']
         testproject_dir = os.path.join(test_dir, 'customtestproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'additional_dir')))
@@ -1463,9 +1483,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         template_path = os.path.join(test_dir, 'admin_scripts', 'custom_templates', 'project_template.tgz')
         args = ['startproject', '--template', template_path, 'tarballtestproject']
         testproject_dir = os.path.join(test_dir, 'tarballtestproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'run.py')))
@@ -1476,9 +1496,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         args = ['startproject', '--template', template_path, 'tarballtestproject', 'altlocation']
         testproject_dir = os.path.join(test_dir, 'altlocation')
         os.mkdir(testproject_dir)
+        self.addCleanup(shutil.rmtree, testproject_dir)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'run.py')))
@@ -1489,9 +1509,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
 
         args = ['startproject', '--template', template_url, 'urltestproject']
         testproject_dir = os.path.join(test_dir, 'urltestproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'run.py')))
@@ -1502,9 +1522,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
 
         args = ['startproject', '--template', template_url, 'urltestproject']
         testproject_dir = os.path.join(test_dir, 'urltestproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'run.py')))
@@ -1514,9 +1534,9 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         template_path = os.path.join(test_dir, 'admin_scripts', 'custom_templates', 'project_template')
         args = ['startproject', '--template', template_path, 'customtestproject', '-e', 'txt', '-n', 'Procfile']
         testproject_dir = os.path.join(test_dir, 'customtestproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
 
         out, err = self.run_django_admin(args)
-        self.addCleanup(shutil.rmtree, testproject_dir)
         self.assertNoOutput(err)
         self.assertTrue(os.path.isdir(testproject_dir))
         self.assertTrue(os.path.exists(os.path.join(testproject_dir, 'additional_dir')))
@@ -1533,12 +1553,12 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         args = ['startproject', '--template', template_path, 'another_project', 'project_dir']
         testproject_dir = os.path.join(test_dir, 'project_dir')
         os.mkdir(testproject_dir)
-        out, err = self.run_django_admin(args)
         self.addCleanup(shutil.rmtree, testproject_dir)
+        out, err = self.run_django_admin(args)
         self.assertNoOutput(err)
         test_manage_py = os.path.join(testproject_dir, 'manage.py')
         with open(test_manage_py, 'r') as fp:
-            content = fp.read()
+            content = force_text(fp.read())
             self.assertIn("project_name = 'another_project'", content)
             self.assertIn("project_directory = '%s'" % testproject_dir, content)
 
@@ -1546,19 +1566,18 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         "Make sure template context variables are not html escaped"
         # We're using a custom command so we need the alternate settings
         self.write_settings('alternate_settings.py')
+        self.addCleanup(self.remove_settings, 'alternate_settings.py')
         template_path = os.path.join(test_dir, 'admin_scripts', 'custom_templates', 'project_template')
         args = ['custom_startproject', '--template', template_path, 'another_project', 'project_dir', '--extra', '<&>', '--settings=alternate_settings']
         testproject_dir = os.path.join(test_dir, 'project_dir')
         os.mkdir(testproject_dir)
-        out, err = self.run_manage(args)
         self.addCleanup(shutil.rmtree, testproject_dir)
+        out, err = self.run_manage(args)
         self.assertNoOutput(err)
         test_manage_py = os.path.join(testproject_dir, 'additional_dir', 'extra.py')
         with open(test_manage_py, 'r') as fp:
             content = fp.read()
             self.assertIn("<&>", content)
-        # tidy up alternate settings
-        self.remove_settings('alternate_settings.py')
 
     def test_custom_project_destination_missing(self):
         """
@@ -1573,3 +1592,29 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
         self.assertOutput(err, "Destination directory '%s' does not exist, please create it first." % testproject_dir)
         self.assertFalse(os.path.exists(testproject_dir))
 
+    def test_custom_project_template_with_non_ascii_templates(self):
+        "Ticket 18091: Make sure the startproject management command is able to render templates with non-ASCII content"
+        template_path = os.path.join(test_dir, 'admin_scripts', 'custom_templates', 'project_template')
+        args = ['startproject', '--template', template_path, '--extension=txt', 'customtestproject']
+        testproject_dir = os.path.join(test_dir, 'customtestproject')
+        self.addCleanup(shutil.rmtree, testproject_dir, True)
+
+        out, err = self.run_django_admin(args)
+        self.assertNoOutput(err)
+        self.assertTrue(os.path.isdir(testproject_dir))
+        path = os.path.join(testproject_dir, 'ticket-18091-non-ascii-template.txt')
+        with codecs.open(path, 'r', 'utf-8') as f:
+            self.assertEqual(f.read(),
+                'Some non-ASCII text for testing ticket #18091:\nüäö €\n')
+
+
+class DiffSettings(AdminScriptTestCase):
+    """Tests for diffsettings management command."""
+    def test_basic(self):
+        "Runs without error and emits settings diff."
+        self.write_settings('settings_to_diff.py', sdict={'FOO': '"bar"'})
+        self.addCleanup(self.remove_settings, 'settings_to_diff.py')
+        args = ['diffsettings', '--settings=settings_to_diff']
+        out, err = self.run_manage(args)
+        self.assertNoOutput(err)
+        self.assertOutput(out, "FOO = 'bar'  ###")

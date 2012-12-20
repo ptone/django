@@ -67,9 +67,10 @@ if root_dir != '':
 django_dir = 'django'
 
 for dirpath, dirnames, filenames in os.walk(django_dir):
-    # Ignore dirnames that start with '.'
+    # Ignore PEP 3147 cache dirs and those whose names start with '.'
     for i, dirname in enumerate(dirnames):
-        if dirname.startswith('.'): del dirnames[i]
+        if dirname.startswith('.') or dirname == '__pycache__':
+            del dirnames[i]
     if '__init__.py' in filenames:
         packages.append('.'.join(fullsplit(dirpath)))
     elif filenames:
@@ -92,6 +93,7 @@ setup(
     author_email = 'foundation@djangoproject.com',
     description = 'A high-level Python Web framework that encourages rapid development and clean, pragmatic design.',
     download_url = 'https://www.djangoproject.com/m/releases/1.4/Django-1.4.tar.gz',
+    license = "BSD",
     packages = packages,
     cmdclass = cmdclasses,
     data_files = data_files,

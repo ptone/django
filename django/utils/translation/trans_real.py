@@ -10,7 +10,8 @@ from threading import local
 
 from django.apps import app_cache
 from django.utils.importlib import import_module
-from django.utils.encoding import smart_str, smart_text
+from django.utils.encoding import force_str, force_text
+from django.utils._os import upath
 from django.utils.safestring import mark_safe, SafeData
 from django.utils import six
 from django.utils.six import StringIO
@@ -31,9 +32,10 @@ _accepted = {}
 # magic gettext number to separate context from message
 CONTEXT_SEPARATOR = "\x04"
 
-# Format of Accept-Language header values. From RFC 2616, section 14.4 and 3.9.
+# Format of Accept-Language header values. From RFC 2616, section 14.4 and 3.9
+# and RFC 3066, section 2.1
 accept_language_re = re.compile(r'''
-        ([A-Za-z]{1,8}(?:-[A-Za-z]{1,8})*|\*)         # "en", "en-au", "x-y-z", "*"
+        ([A-Za-z]{1,8}(?:-[A-Za-z0-9]{1,8})*|\*)      # "en", "en-au", "x-y-z", "es-419", "*"
         (?:\s*;\s*q=(0(?:\.\d{,3})?|1(?:.0{,3})?))?   # Optional "q=1.00", "q=0.8"
         (?:\s*,\s*|$)                                 # Multiple accepts per header.
         ''', re.VERBOSE)
@@ -109,7 +111,7 @@ def translation(language):
 
     from django.conf import settings
 
-    globalpath = os.path.join(os.path.dirname(sys.modules[settings.__module__].__file__), 'locale')
+    globalpath = os.path.join(os.path.dirname(upath(sys.modules[settings.__module__].__file__)), 'locale')
 
     def _fetch(lang, fallback=None):
 
@@ -245,7 +247,8 @@ def do_translate(message, translation_function):
     """
     global _default
 
-    eol_message = message.replace('\r\n', '\n').replace('\r', '\n')
+    # str() is allowing a bytestring message to remain bytestring on Python 2
+    eol_message = message.replace(str('\r\n'), str('\n')).replace(str('\r'), str('\n'))
     t = getattr(_active, "value", None)
     if t is not None:
         result = getattr(t, translation_function)(eol_message)
@@ -273,7 +276,8 @@ else:
         return do_translate(message, 'ugettext')
 
 def pgettext(context, message):
-    result = ugettext("%s%s%s" % (context, CONTEXT_SEPARATOR, message))
+    msg_with_ctxt = "%s%s%s" % (context, CONTEXT_SEPARATOR, message)
+    result = ugettext(msg_with_ctxt)
     if CONTEXT_SEPARATOR in result:
         # Translation not found
         result = message
@@ -319,9 +323,10 @@ else:
         return do_ntranslate(singular, plural, number, 'ungettext')
 
 def npgettext(context, singular, plural, number):
-    result = ungettext("%s%s%s" % (context, CONTEXT_SEPARATOR, singular),
-                       "%s%s%s" % (context, CONTEXT_SEPARATOR, plural),
-                        number)
+    msgs_with_ctxt = ("%s%s%s" % (context, CONTEXT_SEPARATOR, singular),
+                      "%s%s%s" % (context, CONTEXT_SEPARATOR, plural),
+                      number)
+    result = ungettext(*msgs_with_ctxt)
     if CONTEXT_SEPARATOR in result:
         # Translation not found
         result = ungettext(singular, plural, number)
@@ -333,7 +338,7 @@ def all_locale_paths():
     """
     from django.conf import settings
     globalpath = os.path.join(
-        os.path.dirname(sys.modules[settings.__module__].__file__), 'locale')
+        os.path.dirname(upath(sys.modules[settings.__module__].__file__)), 'locale')
     return [globalpath] + list(settings.LOCALE_PATHS)
 
 def check_for_language(lang_code):
@@ -437,8 +442,8 @@ def blankout(src, char):
     return dot_re.sub(char, src)
 
 context_re = re.compile(r"""^\s+.*context\s+((?:"[^"]*?")|(?:'[^']*?'))\s*""")
-inline_re = re.compile(r"""^\s*trans\s+((?:"[^"]*?")|(?:'[^']*?'))(\s+.*context\s+(?:"[^"]*?")|(?:'[^']*?'))?\s*""")
-block_re = re.compile(r"""^\s*blocktrans(\s+.*context\s+(?:"[^"]*?")|(?:'[^']*?'))?(?:\s+|$)""")
+inline_re = re.compile(r"""^\s*trans\s+((?:"[^"]*?")|(?:'[^']*?'))(\s+.*context\s+((?:"[^"]*?")|(?:'[^']*?')))?\s*""")
+block_re = re.compile(r"""^\s*blocktrans(\s+.*context\s+((?:"[^"]*?")|(?:'[^']*?')))?(?:\s+|$)""")
 endblock_re = re.compile(r"""^\s*endblocktrans$""")
 plural_re = re.compile(r"""^\s*plural$""")
 constant_re = re.compile(r"""_\(((?:".*?")|(?:'.*?'))\)""")
@@ -454,7 +459,7 @@ def templatize(src, origin=None):
     from django.conf import settings
     from django.template import (Lexer, TOKEN_TEXT, TOKEN_VAR, TOKEN_BLOCK,
             TOKEN_COMMENT, TRANSLATOR_COMMENT_MARK)
-    src = smart_text(src, settings.FILE_CHARSET)
+    src = force_text(src, settings.FILE_CHARSET)
     out = StringIO()
     message_context = None
     intrans = False
@@ -469,7 +474,7 @@ def templatize(src, origin=None):
                 content = ''.join(comment)
                 translators_comment_start = None
                 for lineno, line in enumerate(content.splitlines(True)):
-                    if line.lstrip().startswith(smart_text(TRANSLATOR_COMMENT_MARK)):
+                    if line.lstrip().startswith(TRANSLATOR_COMMENT_MARK):
                         translators_comment_start = lineno
                 for lineno, line in enumerate(content.splitlines(True)):
                     if translators_comment_start is not None and lineno >= translators_comment_start:
@@ -584,7 +589,7 @@ def templatize(src, origin=None):
                 out.write(' # %s' % t.contents)
             else:
                 out.write(blankout(t.contents, 'X'))
-    return smart_str(out.getvalue())
+    return force_str(out.getvalue())
 
 def parse_accept_lang_header(lang_string):
     """

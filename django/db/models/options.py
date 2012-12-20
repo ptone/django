@@ -19,7 +19,9 @@ from django.utils.encoding import python_2_unicode_compatible
 DEFAULT_NAMES = ('verbose_name', 'verbose_name_plural', 'db_table', 'ordering',
                  'unique_together', 'permissions', 'get_latest_by',
                  'order_with_respect_to', 'app_label', 'db_tablespace',
-                 'abstract', 'managed', 'proxy', 'auto_created')
+                 'abstract', 'managed', 'proxy', 'swappable', 'auto_created',
+                 'index_together')
+
 
 @python_2_unicode_compatible
 class Options(object):
@@ -30,8 +32,9 @@ class Options(object):
         self.verbose_name_plural = None
         self.db_table = ''
         self.ordering = []
-        self.unique_together =  []
-        self.permissions =  []
+        self.unique_together = []
+        self.index_together = []
+        self.permissions = []
         self.object_name, self.app_label = None, app_label
         self.get_latest_by = None
         self.order_with_respect_to = None
@@ -55,8 +58,8 @@ class Options(object):
         # in the end of the proxy_for_model chain. In particular, for
         # concrete models, the concrete_model is always the class itself.
         self.concrete_model = None
+        self.swappable = None
         self.parents = SortedDict()
-        self.duplicate_targets = {}
         self.auto_created = False
 
         # To handle various inheritance situations, we need to track where
@@ -148,24 +151,6 @@ class Options(object):
                         auto_created=True)
                 model.add_to_class('id', auto)
 
-        # Determine any sets of fields that are pointing to the same targets
-        # (e.g. two ForeignKeys to the same remote model). The query
-        # construction code needs to know this. At the end of this,
-        # self.duplicate_targets will map each duplicate field column to the
-        # columns it duplicates.
-        collections = {}
-        for column, target in six.iteritems(self.duplicate_targets):
-            try:
-                collections[target].add(column)
-            except KeyError:
-                collections[target] = set([column])
-        self.duplicate_targets = {}
-        for elt in six.itervalues(collections):
-            if len(elt) == 1:
-                continue
-            for column in elt:
-                self.duplicate_targets[column] = elt.difference(set([column]))
-
     def add_field(self, field):
         # Insert the given field in the order in which it was created, using
         # the "creation_counter" attribute of the field.
@@ -192,6 +177,12 @@ class Options(object):
         if not self.pk and field.primary_key:
             self.pk = field
             field.serialize = False
+
+    def pk_index(self):
+        """
+        Returns the index of the primary key field in the self.fields list.
+        """
+        return self.fields.index(self.pk)
 
     def setup_proxy(self, target):
         """
@@ -220,6 +211,32 @@ class Options(object):
         activate(lang)
         return raw
     verbose_name_raw = property(verbose_name_raw)
+
+    def _swapped(self):
+        """
+        Has this model been swapped out for another? If so, return the model
+        name of the replacement; otherwise, return None.
+
+        For historical reasons, model name lookups using get_model() are
+        case insensitive, so we make sure we are case insensitive here.
+        """
+        if self.swappable:
+            model_label = '%s.%s' % (self.app_label, self.object_name.lower())
+            swapped_for = getattr(settings, self.swappable, None)
+            if swapped_for:
+                try:
+                    swapped_label, swapped_object = swapped_for.split('.')
+                except ValueError:
+                    # setting not in the format app_label.model_name
+                    # raising ImproperlyConfigured here causes problems with
+                    # test cleanup code - instead it is raised in get_user_model
+                    # or as part of validation.
+                    return swapped_for
+
+                if '%s.%s' % (swapped_label, swapped_object.lower()) not in (None, model_label):
+                    return swapped_for
+        return None
+    swapped = property(_swapped)
 
     def _fields(self):
         """
@@ -462,7 +479,7 @@ class Options(object):
         a granparent or even more distant relation.
         """
         if not self.parents:
-            return
+            return None
         if model in self.parents:
             return [model]
         for parent in self.parents:
@@ -470,8 +487,7 @@ class Options(object):
             if res:
                 res.insert(0, parent)
                 return res
-        raise TypeError('%r is not an ancestor of this model'
-                % model._meta.module_name)
+        return None
 
     def get_parent_list(self):
         """

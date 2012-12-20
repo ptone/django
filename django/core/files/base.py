@@ -1,11 +1,12 @@
 from __future__ import unicode_literals
 
 import os
-from io import BytesIO, UnsupportedOperation
+from io import BytesIO, StringIO, UnsupportedOperation
 
-from django.utils.encoding import smart_bytes, smart_text
+from django.utils.encoding import smart_text
 from django.core.files.utils import FileProxyMixin
-from django.utils.encoding import python_2_unicode_compatible
+from django.utils import six
+from django.utils.encoding import force_bytes, python_2_unicode_compatible
 
 @python_2_unicode_compatible
 class File(FileProxyMixin):
@@ -27,7 +28,9 @@ class File(FileProxyMixin):
 
     def __bool__(self):
         return bool(self.name)
-    __nonzero__ = __bool__ # Python 2
+
+    def __nonzero__(self):      # Python 2 compatibility
+        return type(self).__bool__(self)
 
     def __len__(self):
         return self.size
@@ -131,8 +134,12 @@ class ContentFile(File):
     A File-like object that takes just raw content, rather than an actual file.
     """
     def __init__(self, content, name=None):
-        content = content or b''
-        super(ContentFile, self).__init__(BytesIO(content), name=name)
+        if six.PY3:
+            stream_class = StringIO if isinstance(content, six.text_type) else BytesIO
+        else:
+            stream_class = BytesIO
+            content = force_bytes(content)
+        super(ContentFile, self).__init__(stream_class(content), name=name)
         self.size = len(content)
 
     def __str__(self):
@@ -140,7 +147,9 @@ class ContentFile(File):
 
     def __bool__(self):
         return True
-    __nonzero__ = __bool__ # Python 2
+
+    def __nonzero__(self):      # Python 2 compatibility
+        return type(self).__bool__(self)
 
     def open(self, mode=None):
         self.seek(0)

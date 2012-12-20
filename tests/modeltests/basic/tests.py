@@ -2,10 +2,10 @@ from __future__ import absolute_import, unicode_literals
 
 from datetime import datetime
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models.fields import Field, FieldDoesNotExist
 from django.test import TestCase, skipIfDBFeature, skipUnlessDBFeature
-from django.utils.six import PY3
+from django.utils import six
 from django.utils.translation import ugettext_lazy
 
 from .models import Article
@@ -82,7 +82,7 @@ class ModelTest(TestCase):
 
         # Django raises an Article.DoesNotExist exception for get() if the
         # parameters don't match any object.
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             ObjectDoesNotExist,
             "Article matching query does not exist. Lookup parameters were "
             "{'id__exact': 2000}",
@@ -91,14 +91,14 @@ class ModelTest(TestCase):
         )
         # To avoid dict-ordering related errors check only one lookup
         # in single assert.
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             ObjectDoesNotExist,
             ".*'pub_date__year': 2005.*",
             Article.objects.get,
             pub_date__year=2005,
             pub_date__month=8,
         )
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             ObjectDoesNotExist,
             ".*'pub_date__month': 8.*",
             Article.objects.get,
@@ -106,7 +106,7 @@ class ModelTest(TestCase):
             pub_date__month=8,
         )
 
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             ObjectDoesNotExist,
             "Article matching query does not exist. Lookup parameters were "
             "{'pub_date__week_day': 6}",
@@ -127,6 +127,40 @@ class ModelTest(TestCase):
         a = Article.objects.get(pk=a.id)
         b = Article.objects.get(pk=a.id)
         self.assertEqual(a, b)
+
+        # Create a very similar object
+        a = Article(
+            id=None,
+            headline='Area man programs in Python',
+            pub_date=datetime(2005, 7, 28),
+        )
+        a.save()
+
+        self.assertEqual(Article.objects.count(), 2)
+
+        # Django raises an Article.MultipleObjectsReturned exception if the
+        # lookup matches more than one object
+        self.assertRaisesRegexp(
+            MultipleObjectsReturned,
+            "get\(\) returned more than one Article -- it returned 2!",
+            Article.objects.get,
+            headline__startswith='Area',
+        )
+
+        self.assertRaisesRegexp(
+            MultipleObjectsReturned,
+            "get\(\) returned more than one Article -- it returned 2!",
+            Article.objects.get,
+            pub_date__year=2005,
+        )
+
+        self.assertRaisesRegexp(
+            MultipleObjectsReturned,
+            "get\(\) returned more than one Article -- it returned 2!",
+            Article.objects.get,
+            pub_date__year=2005,
+            pub_date__month=7,
+        )
 
     def test_object_creation(self):
         # Create an Article.
@@ -168,7 +202,7 @@ class ModelTest(TestCase):
         self.assertEqual(a4.headline, 'Fourth article')
 
         # Don't use invalid keyword arguments.
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             TypeError,
             "'foo' is an invalid keyword argument for this function",
             Article,
@@ -259,13 +293,12 @@ class ModelTest(TestCase):
              "datetime.datetime(2005, 7, 28, 0, 0)"])
 
         # dates() requires valid arguments.
-        self.assertRaisesRegexp(
+        self.assertRaises(
             TypeError,
-            "dates\(\) takes at least 3 arguments \(1 given\)",
             Article.objects.dates,
         )
 
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             FieldDoesNotExist,
             "Article has no field named 'invalid_field'",
             Article.objects.dates,
@@ -273,7 +306,7 @@ class ModelTest(TestCase):
             "year",
         )
 
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             AssertionError,
             "'kind' must be one of 'year', 'month' or 'day'.",
             Article.objects.dates,
@@ -281,7 +314,7 @@ class ModelTest(TestCase):
             "bad_kind",
         )
 
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             AssertionError,
             "'order' must be either 'ASC' or 'DESC'.",
             Article.objects.dates,
@@ -323,7 +356,7 @@ class ModelTest(TestCase):
              "<Article: Third article>"])
 
         # Slicing works with longs (Python 2 only -- Python 3 doesn't have longs).
-        if not PY3:
+        if not six.PY3:
             self.assertEqual(Article.objects.all()[long(0)], a)
             self.assertQuerysetEqual(Article.objects.all()[long(1):long(3)],
                 ["<Article: Second article>", "<Article: Third article>"])
@@ -369,14 +402,14 @@ class ModelTest(TestCase):
              "<Article: Updated article 8>"])
 
         # Also, once you have sliced you can't filter, re-order or combine
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             AssertionError,
             "Cannot filter a query once a slice has been taken.",
             Article.objects.all()[0:5].filter,
             id=a.id,
         )
 
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             AssertionError,
             "Cannot reorder a query once a slice has been taken.",
             Article.objects.all()[0:5].order_by,
@@ -411,7 +444,7 @@ class ModelTest(TestCase):
 
         # An Article instance doesn't have access to the "objects" attribute.
         # That's only available on the class.
-        self.assertRaisesRegexp(
+        six.assertRaisesRegex(self,
             AttributeError,
             "Manager isn't accessible via Article instances",
             getattr,

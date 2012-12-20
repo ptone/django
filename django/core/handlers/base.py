@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import logging
 import sys
 import types
 
@@ -8,10 +9,9 @@ from django.apps import app_cache
 from django.core import signals
 from django.utils.encoding import force_text
 from django.utils.importlib import import_module
-from django.utils.log import getLogger
 from django.utils import six
 
-logger = getLogger('django.request')
+logger = logging.getLogger('django.request')
 
 
 class BaseHandler(object):
@@ -97,14 +97,15 @@ class BaseHandler(object):
                         break
 
                 if response is None:
-                    if hasattr(request, "urlconf"):
+                    if hasattr(request, 'urlconf'):
                         # Reset url resolver with a custom urlconf.
                         urlconf = request.urlconf
                         urlresolvers.set_urlconf(urlconf)
                         resolver = urlresolvers.RegexURLResolver(r'^/', urlconf)
 
-                    callback, callback_args, callback_kwargs = resolver.resolve(
-                            request.path_info)
+                    resolver_match = resolver.resolve(request.path_info)
+                    callback, callback_args, callback_kwargs = resolver_match
+                    request.resolver_match = resolver_match
 
                     # Apply view middleware
                     for middleware_method in self._view_middleware:
@@ -135,7 +136,7 @@ class BaseHandler(object):
                     raise ValueError("The view %s.%s didn't return an HttpResponse object." % (callback.__module__, view_name))
 
                 # If the response supports deferred rendering, apply template
-                # response middleware and the render the response
+                # response middleware and then render the response
                 if hasattr(response, 'render') and callable(response.render):
                     for middleware_method in self._template_response_middleware:
                         response = middleware_method(request, response)

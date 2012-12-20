@@ -1,35 +1,30 @@
-from __future__ import absolute_import
+# -*- coding: utf-8 -*-
+# This coding header is significant for tests, as the debug view is parsing
+# files to search for such a header to decode the source file content
+from __future__ import absolute_import, unicode_literals
 
 import inspect
 import os
 import sys
 
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, RequestFactory
-from django.test.utils import (setup_test_template_loader,
-                               restore_template_loaders)
-from django.core.urlresolvers import reverse
-from django.views.debug import ExceptionReporter
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.urlresolvers import reverse
+from django.test import TestCase, RequestFactory
+from django.test.utils import (override_settings, setup_test_template_loader,
+    restore_template_loaders)
+from django.utils.encoding import force_text
+from django.views.debug import ExceptionReporter
 
 from .. import BrokenException, except_args
 from ..views import (sensitive_view, non_sensitive_view, paranoid_view,
     custom_exception_reporter_filter_view, sensitive_method_view)
 
 
+@override_settings(DEBUG=True, TEMPLATE_DEBUG=True)
 class DebugViewTests(TestCase):
     urls = "regressiontests.views.urls"
-
-    def setUp(self):
-        self.old_debug = settings.DEBUG
-        settings.DEBUG = True
-        self.old_template_debug = settings.TEMPLATE_DEBUG
-        settings.TEMPLATE_DEBUG = True
-
-    def tearDown(self):
-        settings.DEBUG = self.old_debug
-        settings.TEMPLATE_DEBUG = self.old_template_debug
 
     def test_files(self):
         response = self.client.get('/raises/')
@@ -312,15 +307,16 @@ class ExceptionReportTestMixin(object):
             self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox[0]
             # Frames vars are never shown in plain text email reports.
-            self.assertNotIn('cooked_eggs', email.body)
-            self.assertNotIn('scrambled', email.body)
-            self.assertNotIn('sauce', email.body)
-            self.assertNotIn('worcestershire', email.body)
+            body = force_text(email.body)
+            self.assertNotIn('cooked_eggs', body)
+            self.assertNotIn('scrambled', body)
+            self.assertNotIn('sauce', body)
+            self.assertNotIn('worcestershire', body)
             if check_for_POST_params:
                 for k, v in self.breakfast_data.items():
                     # All POST parameters are shown.
-                    self.assertIn(k, email.body)
-                    self.assertIn(v, email.body)
+                    self.assertIn(k, body)
+                    self.assertIn(v, body)
 
     def verify_safe_email(self, view, check_for_POST_params=True):
         """
@@ -333,20 +329,21 @@ class ExceptionReportTestMixin(object):
             self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox[0]
             # Frames vars are never shown in plain text email reports.
-            self.assertNotIn('cooked_eggs', email.body)
-            self.assertNotIn('scrambled', email.body)
-            self.assertNotIn('sauce', email.body)
-            self.assertNotIn('worcestershire', email.body)
+            body = force_text(email.body)
+            self.assertNotIn('cooked_eggs', body)
+            self.assertNotIn('scrambled', body)
+            self.assertNotIn('sauce', body)
+            self.assertNotIn('worcestershire', body)
             if check_for_POST_params:
                 for k, v in self.breakfast_data.items():
                     # All POST parameters' names are shown.
-                    self.assertIn(k, email.body)
+                    self.assertIn(k, body)
                 # Non-sensitive POST parameters' values are shown.
-                self.assertIn('baked-beans-value', email.body)
-                self.assertIn('hash-brown-value', email.body)
+                self.assertIn('baked-beans-value', body)
+                self.assertIn('hash-brown-value', body)
                 # Sensitive POST parameters' values are not shown.
-                self.assertNotIn('sausage-value', email.body)
-                self.assertNotIn('bacon-value', email.body)
+                self.assertNotIn('sausage-value', body)
+                self.assertNotIn('bacon-value', body)
 
     def verify_paranoid_email(self, view):
         """
@@ -359,15 +356,16 @@ class ExceptionReportTestMixin(object):
             self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox[0]
             # Frames vars are never shown in plain text email reports.
-            self.assertNotIn('cooked_eggs', email.body)
-            self.assertNotIn('scrambled', email.body)
-            self.assertNotIn('sauce', email.body)
-            self.assertNotIn('worcestershire', email.body)
+            body = force_text(email.body)
+            self.assertNotIn('cooked_eggs', body)
+            self.assertNotIn('scrambled', body)
+            self.assertNotIn('sauce', body)
+            self.assertNotIn('worcestershire', body)
             for k, v in self.breakfast_data.items():
                 # All POST parameters' names are shown.
-                self.assertIn(k, email.body)
+                self.assertIn(k, body)
                 # No POST parameters' values are shown.
-                self.assertNotIn(v, email.body)
+                self.assertNotIn(v, body)
 
 
 class ExceptionReporterFilterTests(TestCase, ExceptionReportTestMixin):

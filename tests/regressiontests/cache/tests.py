@@ -15,18 +15,18 @@ import warnings
 
 from django.conf import settings
 from django.core import management
-from django.core.cache import get_cache, DEFAULT_CACHE_ALIAS
+from django.core.cache import get_cache
 from django.core.cache.backends.base import (CacheKeyWarning,
     InvalidCacheBackendError)
 from django.db import router
-from django.http import HttpResponse, HttpRequest, QueryDict
+from django.http import (HttpResponse, HttpRequest, StreamingHttpResponse,
+    QueryDict)
 from django.middleware.cache import (FetchFromCacheMiddleware,
     UpdateCacheMiddleware, CacheMiddleware)
 from django.template import Template
 from django.template.response import TemplateResponse
 from django.test import TestCase, TransactionTestCase, RequestFactory
-from django.test.utils import (get_warnings_state, restore_warnings_state,
-    override_settings)
+from django.test.utils import override_settings, six
 from django.utils import timezone, translation, unittest
 from django.utils.cache import (patch_vary_headers, get_cache_key,
     learn_cache_key, patch_cache_control, patch_response_headers)
@@ -257,6 +257,7 @@ class BaseCacheTests(object):
         self.assertEqual(self.cache.get('answer'), 42)
         self.assertEqual(self.cache.incr('answer', 10), 52)
         self.assertEqual(self.cache.get('answer'), 52)
+        self.assertEqual(self.cache.incr('answer', -10), 42)
         self.assertRaises(ValueError, self.cache.incr, 'does_not_exist')
 
     def test_decr(self):
@@ -266,7 +267,12 @@ class BaseCacheTests(object):
         self.assertEqual(self.cache.get('answer'), 42)
         self.assertEqual(self.cache.decr('answer', 10), 32)
         self.assertEqual(self.cache.get('answer'), 32)
+        self.assertEqual(self.cache.decr('answer', -10), 42)
         self.assertRaises(ValueError, self.cache.decr, 'does_not_exist')
+
+    def test_close(self):
+        self.assertTrue(hasattr(self.cache, 'close'))
+        self.cache.close()
 
     def test_data_types(self):
         # Many different data types can be cached
@@ -821,7 +827,7 @@ class DBCacheTests(BaseCacheTests, TransactionTestCase):
         self.perform_cull_test(50, 18)
 
     def test_second_call_doesnt_crash(self):
-        with self.assertRaisesRegexp(management.CommandError,
+        with six.assertRaisesRegex(self, management.CommandError,
                 "Cache table 'test cache table' could not be created"):
             management.call_command(
                'createcachetable',
@@ -1416,6 +1422,29 @@ class CacheI18nTest(TestCase):
         self.assertEqual(get_cache_data.content, es_message.encode())
         # reset the language
         translation.deactivate()
+
+    @override_settings(
+            CACHE_MIDDLEWARE_KEY_PREFIX="test",
+            CACHE_MIDDLEWARE_SECONDS=60,
+            USE_ETAGS=True,
+    )
+    def test_middleware_with_streaming_response(self):
+        # cache with non empty request.GET
+        request = self._get_request_cache(query_string='foo=baz&other=true')
+
+        # first access, cache must return None
+        get_cache_data = FetchFromCacheMiddleware().process_request(request)
+        self.assertEqual(get_cache_data, None)
+
+        # pass streaming response through UpdateCacheMiddleware.
+        content = 'Check for cache with QUERY_STRING and streaming content'
+        response = StreamingHttpResponse(content)
+        UpdateCacheMiddleware().process_response(request, response)
+
+        # second access, cache must still return None, because we can't cache
+        # streaming response.
+        get_cache_data = FetchFromCacheMiddleware().process_request(request)
+        self.assertEqual(get_cache_data, None)
 
 
 @override_settings(

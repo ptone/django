@@ -3,10 +3,12 @@ import os
 from django.core.management import call_command, CommandError
 from django.test import TestCase
 from django.test.utils import override_settings
-from django.utils import translation
+from django.utils import translation, six
+from django.utils._os import upath
 from django.utils.six import StringIO
 
-test_dir = os.path.abspath(os.path.dirname(__file__))
+test_dir = os.path.abspath(os.path.dirname(upath(__file__)))
+
 
 class MessageCompilationTests(TestCase):
 
@@ -19,14 +21,14 @@ class MessageCompilationTests(TestCase):
 
 class PoFileTests(MessageCompilationTests):
 
-    LOCALE='es_AR'
-    MO_FILE='locale/%s/LC_MESSAGES/django.mo' % LOCALE
+    LOCALE = 'es_AR'
+    MO_FILE = 'locale/%s/LC_MESSAGES/django.mo' % LOCALE
 
     def test_bom_rejection(self):
         os.chdir(test_dir)
-        with self.assertRaisesRegexp(CommandError,
-                "file has a BOM \(Byte Order Mark\)"):
+        with self.assertRaises(CommandError) as cm:
             call_command('compilemessages', locale=self.LOCALE, stderr=StringIO())
+        self.assertIn("file has a BOM (Byte Order Mark)", cm.exception.args[0])
         self.assertFalse(os.path.exists(self.MO_FILE))
 
 

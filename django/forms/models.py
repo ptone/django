@@ -126,7 +126,7 @@ def model_to_dict(instance, fields=None, exclude=None):
                 data[f.name] = []
             else:
                 # MultipleChoiceWidget needs a list of pks, not object instances.
-                data[f.name] = [obj.pk for obj in f.value_from_object(instance)]
+                data[f.name] = list(f.value_from_object(instance).values_list('pk', flat=True))
         else:
             data[f.name] = f.value_from_object(instance)
     return data
@@ -591,6 +591,10 @@ class BaseModelFormSet(BaseFormSet):
             return []
 
         saved_instances = []
+        try:
+            forms_to_delete = self.deleted_forms
+        except AttributeError:
+            forms_to_delete = []
         for form in self.initial_forms:
             pk_name = self._pk_field.name
             raw_pk_value = form._raw_value(pk_name)
@@ -601,7 +605,7 @@ class BaseModelFormSet(BaseFormSet):
             pk_value = getattr(pk_value, 'pk', pk_value)
 
             obj = self._existing_object(pk_value)
-            if self.can_delete and self._should_delete_form(form):
+            if form in forms_to_delete:
                 self.deleted_objects.append(obj)
                 obj.delete()
                 continue
@@ -1009,7 +1013,7 @@ class ModelMultipleChoiceField(ModelChoiceField):
         if self.required and not value:
             raise ValidationError(self.error_messages['required'])
         elif not self.required and not value:
-            return []
+            return self.queryset.none()
         if not isinstance(value, (list, tuple)):
             raise ValidationError(self.error_messages['list'])
         key = self.to_field_name or 'pk'
@@ -1029,6 +1033,8 @@ class ModelMultipleChoiceField(ModelChoiceField):
         return qs
 
     def prepare_value(self, value):
-        if hasattr(value, '__iter__') and not isinstance(value, six.text_type):
+        if (hasattr(value, '__iter__') and
+                not isinstance(value, six.text_type) and
+                not hasattr(value, '_meta')):
             return [super(ModelMultipleChoiceField, self).prepare_value(v) for v in value]
         return super(ModelMultipleChoiceField, self).prepare_value(value)

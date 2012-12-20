@@ -11,8 +11,8 @@ except ImportError:
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
 from django.db import connections, router, transaction, DatabaseError
-from django.utils import timezone
-from django.utils.encoding import smart_bytes
+from django.utils import timezone, six
+from django.utils.encoding import force_bytes
 
 
 class Options(object):
@@ -73,7 +73,7 @@ class DatabaseCache(BaseDatabaseCache):
             transaction.commit_unless_managed(using=db)
             return default
         value = connections[db].ops.process_clob(row[1])
-        return pickle.loads(base64.b64decode(smart_bytes(value)))
+        return pickle.loads(base64.b64decode(force_bytes(value)))
 
     def set(self, key, value, timeout=None, version=None):
         key = self.make_key(key, version=version)
@@ -104,7 +104,11 @@ class DatabaseCache(BaseDatabaseCache):
         if num > self._max_entries:
             self._cull(db, cursor, now)
         pickled = pickle.dumps(value, pickle.HIGHEST_PROTOCOL)
-        encoded = base64.b64encode(pickled).strip()
+        b64encoded = base64.b64encode(pickled)
+        # The DB column is expecting a string, so make sure the value is a
+        # string, not bytes. Refs #19274.
+        if six.PY3:
+            b64encoded = b64encoded.decode('latin1')
         cursor.execute("SELECT cache_key, expires FROM %s "
                        "WHERE cache_key = %%s" % table, [key])
         try:
@@ -113,11 +117,11 @@ class DatabaseCache(BaseDatabaseCache):
                     (mode == 'add' and result[1] < now)):
                 cursor.execute("UPDATE %s SET value = %%s, expires = %%s "
                                "WHERE cache_key = %%s" % table,
-                               [encoded, connections[db].ops.value_to_db_datetime(exp), key])
+                               [b64encoded, connections[db].ops.value_to_db_datetime(exp), key])
             else:
                 cursor.execute("INSERT INTO %s (cache_key, value, expires) "
                                "VALUES (%%s, %%s, %%s)" % table,
-                               [key, encoded, connections[db].ops.value_to_db_datetime(exp)])
+                               [key, b64encoded, connections[db].ops.value_to_db_datetime(exp)])
         except DatabaseError:
             # To be threadsafe, updates/inserts are allowed to fail silently
             transaction.rollback_unless_managed(using=db)

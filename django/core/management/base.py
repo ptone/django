@@ -13,7 +13,7 @@ import django
 from django.apps import app_cache
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.color import color_style
-from django.utils.encoding import smart_str
+from django.utils.encoding import force_str
 from django.utils.six import StringIO
 
 
@@ -66,7 +66,7 @@ class OutputWrapper(object):
             msg += ending
         style_func = [f for f in (style_func, self.style_func, lambda x:x)
                       if f is not None][0]
-        self._out.write(smart_str(style_func(msg)))
+        self._out.write(force_str(style_func(msg)))
 
 
 class BaseCommand(object):
