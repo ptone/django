@@ -24,7 +24,10 @@ class App(object):
 
         # TODO should this happen after the __dict__update below?
         # _name is an option passed in from the factory class methods
-        self.name = options.get('_name', self.__module__)
+        if hasattr(self, '_name'):
+            self.name = self._name
+        else:
+            self.name = self.__module__
 
         # TODO is this really still needed?
         if self.name in sys.modules:
