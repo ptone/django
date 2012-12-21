@@ -46,8 +46,6 @@ class Options(object):
         self.abstract = False
         self.managed = True
         self.proxy = False
-        # the App instance that owns this model
-        self.app = None
         # For any class that is a proxy (including automatically created
         # classes for deferred object loading), proxy_for_model tells us
         # which class this model is proxying. Note that proxy_for_model
@@ -77,6 +75,7 @@ class Options(object):
 
         cls._meta = self
         self.model = cls
+        # TODO need to set the installed attr as appropriate and remove property below
         # First, construct the default values for these options.
         self.object_name = cls.__name__
         self.module_name = self.object_name.lower()
@@ -521,11 +520,3 @@ class Options(object):
                 # of the chain to the ancestor is that parent
                 # links
                 return self.parents[parent] or parent_link
-
-    @property
-    def installed(self):
-        # first test TODO will need setter with warning as well
-        # TODO - just set this on populate- won't change, will remove need for backref to app ob
-        if self.app:
-            return self.app.installed
-        return False
