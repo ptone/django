@@ -468,8 +468,6 @@ class AppCache(object):
             # for installed apps this is updated again in the app's
             # register_models method - but for raw imported models
             # it is not
-            # TODO - this needs to/will go away
-            model._meta.app = app
 
         self._get_models_cache.clear()
 
@@ -492,6 +490,7 @@ class AppCache(object):
             return self._apps
 
     def _test_repair(self):
+        # TODO hopefully this will all go away....
         """
         This is a huge hack - and is only used in a testing context
 
@@ -512,4 +511,4 @@ class AppCache(object):
                     if model not in app.models:
                         app.models[model] = module
                 for model in app.models.values():
-                    model._meta.app = app
+                    pass

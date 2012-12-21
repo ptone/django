@@ -110,9 +110,7 @@ class App(object):
                 else:
                     raise
         for model in self.models.values():
-            # update the models reference to the app it is associated with
-            # TODO remove the backref - and associated bits in model options
-            model._meta.app = self
+            model._meta.installed = self.installed
 
             # TODO this commented out block should be removed
             # we let models always use the standard way of determining db_table
