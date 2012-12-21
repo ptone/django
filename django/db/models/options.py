@@ -520,19 +520,6 @@ class Options(object):
                 # links
                 return self.parents[parent] or parent_link
 
-    def get_ordered_objects(self):
-        "Returns a list of Options objects that are ordered with respect to this object."
-        if not hasattr(self, '_ordered_objects'):
-            objects = []
-            # TODO
-            #for klass in get_models(get_app(self.app_label)):
-            #    opts = klass._meta
-            #    if opts.order_with_respect_to and opts.order_with_respect_to.rel \
-            #        and self == opts.order_with_respect_to.rel.to._meta:
-            #        objects.append(opts)
-            self._ordered_objects = objects
-        return self._ordered_objects
-
     def pk_index(self):
         """
         Returns the index of the primary key field in the self.fields list.
