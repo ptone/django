@@ -520,12 +520,6 @@ class Options(object):
                 # links
                 return self.parents[parent] or parent_link
 
-    def pk_index(self):
-        """
-        Returns the index of the primary key field in the self.fields list.
-        """
-        return self.fields.index(self.pk)
-
     @property
     def installed(self):
         # first test TODO will need setter with warning as well
