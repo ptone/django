@@ -102,7 +102,7 @@ class AppCache(object):
                         app.models_path != '']
                 for app in self.loaded_apps:
                     app.relocate_models()
-                    if app.models_path:
+                    if app.models_path:  # TODO is this the best attr to check if models exist?
                         for app2 in models_apps:
                             if (app != app2 and
                                     app.db_prefix == app2.db_prefix):
@@ -111,6 +111,7 @@ class AppCache(object):
                                     ' have the same db_prefix "%s"'
                                     % (app, app2, app.db_prefix))
                     if app.installed:
+                        # TODO just app.__module__ ?
                         app.module = import_module(app.name)
                         app.path = os.path.dirname(app.module.__file__)
                     app.register_models()
@@ -136,6 +137,9 @@ class AppCache(object):
         except ValueError:
             # First, return a new app class for the given module if
             # it's one level module path that can't be rsplit (e.g. 'myapp')
+            # TODO need to refactor from name/label - need both
+            # because we may have fully qualified name and want to
+            # save that
             return App.from_name(app_name)
         try:
             # Secondly, try to import the module directly,
@@ -160,7 +164,7 @@ class AppCache(object):
                             "App '%s' must be a subclass of "
                             "'django.apps.App'" % app_name)
                     return app_class
-        return App.from_name(app_name)
+        return App.from_label(app_name)
 
     def load_app(self, app_name, app_kwargs=None, can_postpone=False,
             installed=False):
@@ -181,7 +185,7 @@ class AppCache(object):
         self.nesting_level += 1
         # check if an app instance with app_name already exists, if not
         # then create one
-        app = self.get_app_instance(app_name.split('.')[-1])
+        app = self.get_app_instance(app_name=app_name)
         if app and not app.installed:
             if installed:
                 # a naive app was created by model imports
@@ -193,15 +197,21 @@ class AppCache(object):
                 # return app
                 # a naive app has already been loaded/created - don't create another one
                 self.nesting_level -= 1
+                # TODO shouldn't this return models module here?
                 return
         if not app:
             app_class = self.get_app_class(app_name)
             # check to see if we failed to find the current app because
             # of it was loaded as a module attribute app object
             # eg contrib.auth.app.AuthApp
-            app = self.get_app_instance(app_class.label)
+
+            app_class_label = app_class().label
+            # app_class_label = app_class.label
+            app = self.get_app_instance(app_label=app_class_label)
 
             if not app or app.name != app_class.name:
+                # at this point, we may have a naive app and fully qualified
+                # app with same label
                 app = app_class(**app_kwargs)
                 self.loaded_apps.append(app)
                 # Send the signal that the app has been loaded
@@ -242,7 +252,8 @@ class AppCache(object):
         # TODO this will currently always return None
         # as we are postponing model import to register models
         # this is probably the best way to decouple model loading
-        # from app loading
+        # from app loading - given we are breaking what load_app returns
+        # why not now just return the app instance?
         self.nesting_level -= 1
         return app.models_module
 
@@ -465,6 +476,9 @@ class AppCache(object):
             if app.models_module is None:
                 app.models_module = sys.modules[model.__module__]
             app.models[model_name] = model
+
+            # TODO do we really need these two different register_models in different places???
+            # 
             # for installed apps this is updated again in the app's
             # register_models method - but for raw imported models
             # it is not

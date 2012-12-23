@@ -26,25 +26,33 @@ class App(object):
         # _name is an option passed in from the factory class methods
         if hasattr(self, '_name'):
             self.name = self._name
+        elif 'name' in options:
+            self.name = options.get('name')
         else:
             self.name = self.__module__
 
         # TODO is this really still needed?
-        if self.name in sys.modules:
-            self.path = sys.modules[self.name].__file__
-        else:
-            self.path = ''
+        # if self.name in sys.modules:
+            # self.path = sys.modules[self.name].__file__
+        # else:
+            # self.path = ''
 
         # TODO - think this can go away as an attribute
         # can just be retrieved from the class if needed
         self.module = None
 
-        if '.' in self.name:
-            self.label = self.name.split('.')[-1]
-        else:
-            self.label = self.name
+        self.models_module = None
+        self.db_prefix = None
 
+        if not hasattr(self.__class__, 'label'):
+            if '.' in self.name:
+                self.label = self.name.split('.')[-1]
+            else:
+                self.label = self.name
+
+        # self.models_path = None
         self.models_path = '%s.models' % self.name
+
         # update attributes on self with kwarg like configuration
         # from INSTALLED_APPS
         self.__dict__.update(options)
@@ -66,7 +74,7 @@ class App(object):
         upper = lambda match: match.group(1).upper()
         cls_name = module_name_re.sub(upper, label)
         return type(cls_name[0].upper() +
-                cls_name[1:], (cls,), {'_name': label})
+                cls_name[1:], (cls,), {'label': label, 'name': label})
 
     def relocate_models(self):
         if not self.installed:
