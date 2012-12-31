@@ -3,6 +3,7 @@ from __future__ import absolute_import, unicode_literals
 import datetime
 import pickle
 from operator import attrgetter
+import warnings
 
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -1596,7 +1597,7 @@ class AuthTestCase(TestCase):
         new_io = StringIO()
         management.call_command('dumpdata', 'auth', format='json', database='other', stdout=new_io)
         command_output = new_io.getvalue().strip()
-        self.assertTrue('"email": "alice@example.com",' in command_output)
+        self.assertTrue('"email": "alice@example.com"' in command_output)
 
 
 @override_settings(AUTH_PROFILE_MODULE='multiple_database.UserProfile')
@@ -1612,8 +1613,10 @@ class UserProfileTestCase(TestCase):
         bob_profile = UserProfile(user=bob, flavor='crunchy frog')
         bob_profile.save()
 
-        self.assertEqual(alice.get_profile().flavor, 'chocolate')
-        self.assertEqual(bob.get_profile().flavor, 'crunchy frog')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            self.assertEqual(alice.get_profile().flavor, 'chocolate')
+            self.assertEqual(bob.get_profile().flavor, 'crunchy frog')
 
 class AntiPetRouter(object):
     # A router that only expresses an opinion on syncdb,

@@ -85,14 +85,14 @@ Django quotes column and table names behind the scenes.
 
     The name of an orderable field in the model, typically a :class:`DateField`,
     :class:`DateTimeField`, or :class:`IntegerField`. This specifies the default
-    field to use in your model :class:`Manager`'s :class:`~QuerySet.latest`
-    method.
+    field to use in your model :class:`Manager`'s
+    :meth:`~django.db.models.query.QuerySet.latest` method.
 
     Example::
 
         get_latest_by = "order_date"
 
-    See the docs for :meth:`~django.db.models.query.QuerySet.latest` for more.
+    See the :meth:`~django.db.models.query.QuerySet.latest` docs for more.
 
 ``managed``
 -----------
@@ -208,10 +208,6 @@ Django quotes column and table names behind the scenes.
     To order by ``pub_date`` descending, then by ``author`` ascending, use this::
 
         ordering = ['-pub_date', 'author']
-
-    .. versionchanged:: 1.4
-       The Django admin honors all elements in the list/tuple; before 1.4, only
-       the first one was respected.
 
 ``permissions``
 ---------------
