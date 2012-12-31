@@ -16,42 +16,38 @@ class App(object):
     The base app class to be subclassed.
     """
 
+    # label = ''
+
     def __init__(self, **options):
+        self.errors = None
+
+        if not hasattr(self, 'name'):
+            # TODO - surely there is a better way to do this?
+            self.name = '.'.join([self.__module__, self.__class__.__name__])
+
+        if self.name == '':
+            from pudb import set_trace; set_trace()
+
+        if not hasattr(self, 'label'):
+            self.label = options.get('label', '')
 
         # set to true when the app in instantiated by app_cache._populate
         # but remains false for naive apps
         self.installed = False
 
-        # TODO should this happen after the __dict__update below?
-        # _name is an option passed in from the factory class methods
-        if hasattr(self, '_name'):
-            self.name = self._name
-        elif 'name' in options:
-            self.name = options.get('name')
-        else:
-            self.name = self.__module__
-
-        # TODO is this really still needed?
-        # if self.name in sys.modules:
-            # self.path = sys.modules[self.name].__file__
-        # else:
-            # self.path = ''
-
-        # TODO - think this can go away as an attribute
-        # can just be retrieved from the class if needed
         self.module = None
-
         self.models_module = None
-        self.db_prefix = None
 
-        if not hasattr(self.__class__, 'label'):
-            if '.' in self.name:
-                self.label = self.name.split('.')[-1]
-            else:
-                self.label = self.name
+        # from pudb import set_trace; set_trace()
+        if not hasattr(self, 'db_prefix'):
+            self.db_prefix = self.label
 
-        # self.models_path = None
-        self.models_path = '%s.models' % self.name
+        if '.' in self.name:
+            self.models_path = '%s.models' % self.name
+        else:
+            self.models_path = None
+
+        self.models = {}
 
         # update attributes on self with kwarg like configuration
         # from INSTALLED_APPS
@@ -70,6 +66,7 @@ class App(object):
 
     @classmethod
     def from_label(cls, label):
+        # from pudb import set_trace; set_trace()
         label = str(label)
         upper = lambda match: match.group(1).upper()
         cls_name = module_name_re.sub(upper, label)
@@ -99,14 +96,14 @@ class App(object):
 
     def register_models(self):
         from django.apps import app_cache
-        if not self.models_module:
+        if self.models_path and not self.models_module:
             try:
                 models = import_module(self.models_path)
                 self.models_module = models
             except ImportError:
                 # If the app doesn't have a models module, we can just ignore the
                 # ImportError and return no models for it.
-                if not module_has_submodule(self.__module__, 'models'):
+                if not module_has_submodule(import_module(self.__module__), 'models'):
                     return None
                 # But if the app does have a models module, we need to figure out
                 # whether to suppress or propagate the error. If can_postpone is
@@ -119,17 +116,6 @@ class App(object):
                     raise
         for model in self.models.values():
             model._meta.installed = self.installed
-
-            # TODO this commented out block should be removed
-            # we let models always use the standard way of determining db_table
-            ## update the db_table of the model if set by the app
-            # if (self._meta.label != self._meta.db_prefix and
-                    # model._meta.db_table.startswith(self._meta.label)):
-                ## this should be safe as it should always have been called
-                ## early on before any syncdb
-                # model._meta.db_table = model._meta.db_table.replace(
-                        # self._meta.label,
-                        # self._meta.db_prefix)
 
         app_cache._get_models_cache.clear()
 

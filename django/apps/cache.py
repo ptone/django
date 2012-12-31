@@ -4,14 +4,21 @@ import os
 import warnings
 from collections import namedtuple
 
+from django.apps.base import App
+from django.apps.signals import app_loaded, post_apps_loaded, pre_apps_loaded
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
+from django.utils.text import get_verbose_name
 
-from django.apps.base import App
-from django.apps.signals import app_loaded, post_apps_loaded, pre_apps_loaded
 
+def get_label(name_or_label):
+    try:
+        app_path, app_attr = name_or_label.rsplit('.', 1)
+        return app_attr
+    except ValueError:
+        return name_or_label
 
 def _initialize():
     """
@@ -110,10 +117,10 @@ class AppCache(object):
                                     'The apps "%s" and "%s"'
                                     ' have the same db_prefix "%s"'
                                     % (app, app2, app.db_prefix))
-                    if app.installed:
+                    # if app.installed:
                         # TODO just app.__module__ ?
-                        app.module = import_module(app.name)
-                        app.path = os.path.dirname(app.module.__file__)
+                        # app.module = import_module(app.name)
+                        # app.path = os.path.dirname(app.module.__file__)
                     app.register_models()
                     post_load = getattr(app, 'post_load', None)
                     if post_load is not None and callable(post_load):
@@ -140,7 +147,8 @@ class AppCache(object):
             # TODO need to refactor from name/label - need both
             # because we may have fully qualified name and want to
             # save that
-            return App.from_name(app_name)
+            return App.from_label(app_name)
+            return App
         try:
             # Secondly, try to import the module directly,
             # because it'll fail with a class path or a bad path
@@ -164,7 +172,8 @@ class AppCache(object):
                             "App '%s' must be a subclass of "
                             "'django.apps.App'" % app_name)
                     return app_class
-        return App.from_label(app_name)
+        return App
+        # return App.from_label(app_attr)
 
     def load_app(self, app_name, app_kwargs=None, can_postpone=False,
             installed=False):
@@ -202,17 +211,20 @@ class AppCache(object):
         if not app:
             app_class = self.get_app_class(app_name)
             # check to see if we failed to find the current app because
-            # of it was loaded as a module attribute app object
+            # it was loaded as a module attribute app object
             # eg contrib.auth.app.AuthApp
-
-            app_class_label = app_class().label
-            # app_class_label = app_class.label
-            app = self.get_app_instance(app_label=app_class_label)
+            if hasattr(app_class, 'label'):
+                app = self.get_app_instance(app_label=app_class.label)
 
             if not app or app.name != app_class.name:
                 # at this point, we may have a naive app and fully qualified
                 # app with same label
+                if app_class is App:
+                    app_kwargs.update({'name':app_name,
+                        'label': get_label(app_name)})
                 app = app_class(**app_kwargs)
+                x = app.label
+                # from pudb import set_trace; set_trace()
                 self.loaded_apps.append(app)
                 # Send the signal that the app has been loaded
                 app_loaded.send(sender=app_class, app=app)
@@ -221,7 +233,6 @@ class AppCache(object):
                 self.nesting_level -= 1
                 app.installed = installed
                 return app.models_module
-
         else:
             # an existing app was found
             if app.name != app_name:
@@ -244,7 +255,7 @@ class AppCache(object):
 
         # if the app was created with a label only - it has no module known
         # and has no models module
-        if not app.module:
+        if not app.__class__ is App:
             # TODO - should this just be based on the local installed flag?
             self.nesting_level -= 1
             return app.models_module
@@ -264,9 +275,11 @@ class AppCache(object):
                 del sys.modules[module]
 
         if app.module:
-            app_module = app.module.__name__
-            if app_module in sys.modules:
-                del sys.modules[app_module]
+            # TODO believ this os obsoleted
+            pass
+            # app_module = app.module.__name__
+            # if app_module in sys.modules:
+                # del sys.modules[app_module]
 
         if app.models_module:
             models_module = app.models_module.__name__
@@ -389,7 +402,7 @@ class AppCache(object):
 
     def get_models(self, app_mod=None,
                    include_auto_created=False, include_deferred=False,
-                   only_installed=True):
+                   only_installed=True, include_swapped=False):
         """
         Given a module containing models, returns a list of the models.
         Otherwise returns a list of all installed models.
@@ -401,9 +414,13 @@ class AppCache(object):
         By default, models created to satisfy deferred attribute
         queries are *not* included in the list of models. However, if
         you specify include_deferred, they will be.
+
+        By default, models that have been swapped out will *not* be
+        included in the list of models. However, if you specify
+        include_swapped, they will be.
         """
         cache_key = (app_mod, include_auto_created, include_deferred,
-                     only_installed)
+                     only_installed, include_swapped)
         try:
             return self._get_models_cache[cache_key]
         except KeyError:
@@ -423,7 +440,8 @@ class AppCache(object):
             model_list.extend(
                 model for model in list(app.models.values())
                 if ((not model._deferred or include_deferred) and
-                    (not model._meta.auto_created or include_auto_created))
+                    (not model._meta.auto_created or include_auto_created) and
+                    (not model._meta.swapped or include_swapped))
             )
         self._get_models_cache[cache_key] = model_list
         return model_list

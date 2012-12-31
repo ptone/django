@@ -3,5 +3,5 @@ from django.utils.translation import ugettext_lazy as _
 
 class AuthApp(apps.App):
 
-    class Meta:
-        verbose_name = _('auth')
+    label = 'auth'
+    models_path = 'django.contrib.auth.models'
