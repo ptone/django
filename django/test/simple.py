@@ -260,7 +260,7 @@ class DjangoTestSuiteRunner(object):
                 if '.' in label:
                     suite.addTest(build_test(label))
                 else:
-                    app = app_cache.get_models_module(label, emptyOK=True)
+                    app = app_cache.get_models_module(label)
                     suite.addTest(build_suite(app))
         else:
             for app in app_cache.get_models_modules():

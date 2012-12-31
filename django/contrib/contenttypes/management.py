@@ -32,7 +32,7 @@ def update_contenttypes(app, created_models, verbosity=2, db=DEFAULT_DB_ALIAS, *
     content_types = dict(
         (ct.model, ct)
         for ct in ContentType.objects.using(db).filter(
-            app_label=app_cls._meta.label)
+            app_label=app_cls.label)
     )
     to_remove = [
         ct

@@ -22,6 +22,9 @@ class App(object):
         self.errors = None
 
         if not hasattr(self, 'name'):
+            self.name = options.get('name', None)
+
+        if not self.name:
             # TODO - surely there is a better way to do this?
             self.name = '.'.join([self.__module__, self.__class__.__name__])
 
