@@ -6,6 +6,7 @@ from django.utils import six
 
 
 class HandlerTests(TestCase):
+    urls = "regressiontests.handlers.urls"
 
     # Mangle settings so the handler will fail
     @override_settings(MIDDLEWARE_CLASSES=42)
@@ -28,6 +29,18 @@ class HandlerTests(TestCase):
         handler = WSGIHandler()
         response = handler(environ, lambda *a, **k: None)
         self.assertEqual(response.status_code, 400)
+
+    @override_settings(DEBUG=False, ALLOWED_HOSTS=['foobar.com'])
+    def test_disallowed_host_returns_400(self):
+        response = self.client.get('/regular/')
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(DEBUG=False, ALLOWED_HOSTS=['foobar.com'])
+    def test_allowed_host_ok(self):
+        # full tests for get_host and the allowed host setting are located in
+        # regressiontests/requests, this is to test the handler's response.
+        response = self.client.get('/regular/', HTTP_HOST='foobar.com')
+        self.assertEqual(response.status_code, 200)
 
 
 class SignalsTests(TestCase):

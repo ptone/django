@@ -82,7 +82,9 @@ middleware; if so this middleware must be listed first in
 If the ``Host`` header (or ``X-Forwarded-Host`` if
 :setting:`USE_X_FORWARDED_HOST` is enabled) does not match any value in this
 list, the :meth:`django.http.HttpRequest.get_host()` method will raise
-:exc:`~django.core.exceptions.SuspiciousOperation`.
+:exc:`~django.core.exceptions.SuspiciousOperation`. When this exception is
+raised during request handling, a :class:`~django.http.HttpResponseBadRequest`
+will be returned to the client.
 
 When :setting:`DEBUG` is ``True`` or when running tests, host validation is
 disabled; any host will be accepted. Thus it's usually only necessary to set it

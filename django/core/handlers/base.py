@@ -9,7 +9,9 @@ from django.conf import settings
 from django.core import exceptions
 from django.core import urlresolvers
 from django.core import signals
-from django.core.exceptions import MiddlewareNotUsed, PermissionDenied
+from django.core.exceptions import (MiddlewareNotUsed, PermissionDenied,
+        SuspiciousOperation)
+from django.http.response import HttpResponseBadRequest
 from django.utils.encoding import force_text
 from django.utils.module_loading import import_by_path
 from django.utils import six
@@ -159,6 +161,20 @@ class BaseHandler(object):
                             sender=self.__class__, request=request)
                     response = self.handle_uncaught_exception(request,
                             resolver, sys.exc_info())
+            except SuspiciousOperation as e:
+                # handle disallowed hosts and return 400
+                exception_text = force_text(e)
+                if 'ALLOWED_HOSTS' in exception_text:
+                    logger.error(
+                        exception_text,
+                        extra={
+                            'status_code': 400,
+                            'request': request
+                        })
+                    response = HttpResponseBadRequest('<h1>Bad Request</h1>')
+                else:
+                    # some other SuspiciousOperation
+                    raise
             except SystemExit:
                 # Allow sys.exit() to actually exit. See tickets #1023 and #4701
                 raise
