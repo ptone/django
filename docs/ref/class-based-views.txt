@@ -13,6 +13,13 @@ Class-based generic views
     see the :doc:`topic guide </topics/generic-views>` and
     :doc:`detailed reference </ref/generic-views>`.
 
+.. note::
+    While relatively few changes were made to the code for class-based views
+    between 1.4 and 1.5, the documentation was improved significantly.
+    Therefore it may be valuable to also consult the 1.5 documentation online,
+    while carefully considering the 1.5 release notes for what features may
+    have changed.
+
 Writing Web applications can be monotonous, because we repeat certain patterns
 again and again. Django tries to take away some of that monotony at the model
 and template layers, but Web developers also experience this boredom at the view
