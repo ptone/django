@@ -1068,7 +1068,7 @@ class ModelAdmin(BaseModelAdmin):
             'media': media,
             'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
-            'app_label': app_cache.get_app_instance(opts.app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(opts.app_label).verbose_name,
         }
         context.update(extra_context or {})
         return self.render_change_form(request, context, form_url=form_url, add=True)
@@ -1160,7 +1160,7 @@ class ModelAdmin(BaseModelAdmin):
             'media': media,
             'inline_admin_formsets': inline_admin_formsets,
             'errors': helpers.AdminErrorList(form, formsets),
-            'app_label': app_cache.get_app_instance(opts.app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(opts.app_label).verbose_name,
         }
         context.update(extra_context or {})
         return self.render_change_form(request, context, change=True, obj=obj, form_url=form_url)
@@ -1304,7 +1304,7 @@ class ModelAdmin(BaseModelAdmin):
             'cl': cl,
             'media': media,
             'has_add_permission': self.has_add_permission(request),
-            'app_label': app_cache.get_app_instance(app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(app_label).verbose_name,
             'action_form': action_form,
             'actions_on_top': self.actions_on_top,
             'actions_on_bottom': self.actions_on_bottom,
@@ -1375,7 +1375,7 @@ class ModelAdmin(BaseModelAdmin):
             "perms_lacking": perms_needed,
             "protected": protected,
             "opts": opts,
-            "app_label": app_cache.get_app_instance(app_label)._meta.verbose_name,
+            "app_label": app_cache.get_app_instance(app_label).verbose_name,
         }
         context.update(extra_context or {})
 
@@ -1408,7 +1408,7 @@ class ModelAdmin(BaseModelAdmin):
             'action_list': action_list,
             'module_name': capfirst(force_text(opts.verbose_name_plural)),
             'object': obj,
-            'app_label': app_cache.get_app_instance(app_label)._meta.verbose_name,
+            'app_label': app_cache.get_app_instance(app_label).verbose_name,
             'opts': opts,
         }
         context.update(extra_context or {})
