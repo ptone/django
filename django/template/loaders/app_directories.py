@@ -58,5 +58,3 @@ class Loader(BaseLoader):
             except IOError:
                 pass
         raise TemplateDoesNotExist(template_name)
-
-_loader = Loader()

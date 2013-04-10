@@ -50,12 +50,12 @@ All attributes should be considered read-only, unless stated otherwise below.
 
 .. attribute:: HttpRequest.path_info
 
-    Under some Web server configurations, the portion of the URL after the host
-    name is split up into a script prefix portion and a path info portion.
-    The ``path_info`` attribute always contains the path info portion of the
-    path, no matter what Web server is being used. Using this instead of
-    attr:`~HttpRequest.path` can make your code much easier to move between test
-    and deployment servers.
+    Under some Web server configurations, the portion of the URL after the
+    host name is split up into a script prefix portion and a path info
+    portion. The ``path_info`` attribute always contains the path info portion
+    of the path, no matter what Web server is being used. Using this instead
+    of :attr:`~HttpRequest.path` can make your code easier to move between
+    test and deployment servers.
 
     For example, if the ``WSGIScriptAlias`` for your application is set to
     ``"/minfo"``, then ``path`` might be ``"/minfo/music/bands/the_beatles/"``
@@ -263,7 +263,7 @@ Methods
 .. method:: HttpRequest.get_signed_cookie(key, default=RAISE_ERROR, salt='', max_age=None)
 
    Returns a cookie value for a signed cookie, or raises a
-   :class:`~django.core.signing.BadSignature` exception if the signature is
+   ``django.core.signing.BadSignature`` exception if the signature is
    no longer valid. If you provide the ``default`` argument the exception
    will be suppressed and that default value will be returned instead.
 
@@ -696,7 +696,7 @@ Methods
 
     .. _HTTPOnly: https://www.owasp.org/index.php/HTTPOnly
 
-.. method:: HttpResponse.set_signed_cookie(key, value='', salt='', max_age=None, expires=None, path='/', domain=None, secure=None, httponly=True)
+.. method:: HttpResponse.set_signed_cookie(key, value, salt='', max_age=None, expires=None, path='/', domain=None, secure=None, httponly=True)
 
     Like :meth:`~HttpResponse.set_cookie()`, but
     :doc:`cryptographic signing </topics/signing>` the cookie before setting
@@ -745,6 +745,13 @@ types of HTTP responses. Like ``HttpResponse``, these subclasses live in
     (e.g. ``'http://www.yahoo.com/search/'``) or an absolute path with no
     domain (e.g. ``'/search/'``). See :class:`HttpResponse` for other optional
     constructor arguments. Note that this returns an HTTP status code 302.
+
+    .. attribute:: HttpResponseRedirect.url
+
+        .. versionadded:: 1.6
+
+        This read-only attribute represents the URL the response will redirect
+        to (equivalent to the ``Location`` response header).
 
 .. class:: HttpResponsePermanentRedirect
 
@@ -807,8 +814,8 @@ generating large CSV files.
 .. admonition:: Performance considerations
 
     Django is designed for short-lived requests. Streaming responses will tie
-    a worker process and keep a database connection idle in transaction for
-    the entire duration of the response. This may result in poor performance.
+    a worker process for the entire duration of the response. This may result
+    in poor performance.
 
     Generally speaking, you should perform expensive tasks outside of the
     request-response cycle, rather than resorting to a streamed response.
