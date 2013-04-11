@@ -54,7 +54,7 @@ class ContentTypesTests(TestCase):
         ContentType.objects.clear_cache()
 
     def tearDown(self):
-        Site._meta.app.installed = self.old_Site_meta_installed
+        Site._meta.installed = self.old_Site_meta_installed
         ContentType.objects.clear_cache()
 
     def test_lookup_cache(self):
