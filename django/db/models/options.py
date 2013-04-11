@@ -9,14 +9,11 @@ from django.conf import settings
 from django.db.models.fields.related import ManyToManyRel
 from django.db.models.fields import AutoField, FieldDoesNotExist
 from django.db.models.fields.proxy import OrderWrt
-from django.utils.translation import activate, deactivate_all, get_language, string_concat
-from django.utils.encoding import force_text, smart_text
-from django.utils.datastructures import SortedDict
-from django.utils.text import get_verbose_name
 from django.utils import six
 from django.utils.functional import cached_property
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import force_text, smart_text, python_2_unicode_compatible
+from django.utils.text import get_verbose_name
 from django.utils.translation import activate, deactivate_all, get_language, string_concat
 
 DEFAULT_NAMES = ('verbose_name', 'verbose_name_plural', 'db_table', 'ordering',
@@ -79,6 +76,7 @@ class Options(object):
         cls._meta = self
         self.model = cls
         # TODO need to set the installed attr as appropriate and remove property below
+        self.installed = re.sub('\.models$', '', cls.__module__) in settings.INSTALLED_APPS
         # First, construct the default values for these options.
         self.object_name = cls.__name__
         self.model_name = self.object_name.lower()
