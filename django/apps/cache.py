@@ -117,10 +117,11 @@ class AppCache(object):
                                     'The apps "%s" and "%s"'
                                     ' have the same db_prefix "%s"'
                                     % (app, app2, app.db_prefix))
-                    # if app.installed:
+                    if app.installed:
                         # TODO just app.__module__ ?
-                        # app.module = import_module(app.name)
-                        # app.path = os.path.dirname(app.module.__file__)
+                        # path seems to be used in FS based loaders
+                        app.module = import_module(app.name)
+                        app.path = os.path.dirname(app.module.__file__)
                     app.register_models()
                     post_load = getattr(app, 'post_load', None)
                     if post_load is not None and callable(post_load):
