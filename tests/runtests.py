@@ -83,6 +83,10 @@ def setup(verbosity, test_labels):
     settings.LANGUAGE_CODE = 'en'
     settings.SITE_ID = 1
 
+    # This import statement is intentionally delayed until after we
+    # access settings because of the USE_I18N dependency.
+    from django.apps import app_cache
+
     if verbosity > 0:
         # Ensure any warnings captured to logging are piped through a verbose
         # logging handler.  If any -W options were passed explicitly on command
@@ -90,9 +94,6 @@ def setup(verbosity, test_labels):
         logger = logging.getLogger('py.warnings')
         handler = logging.StreamHandler()
         logger.addHandler(handler)
-
-    # Load all the ALWAYS_INSTALLED_APPS.
-    get_apps()
 
     # Load all the test model apps.
     test_labels_set = set([label.split('.')[0] for label in test_labels])
@@ -116,11 +117,12 @@ def setup(verbosity, test_labels):
         if not test_labels or module_name in test_labels_set:
             if verbosity >= 2:
                 print("Importing application %s" % module_name)
-            mod = load_app(module_label)
-            if mod:
-                if module_label not in settings.INSTALLED_APPS:
-                    settings.INSTALLED_APPS.append(module_label)
 
+            mod = app_cache.load_app(module_label, installed=True)
+            if module_label not in settings.INSTALLED_APPS:
+                settings.INSTALLED_APPS.append(module_label)
+
+    app_cache._populate()
     return state
 
 def teardown(state):
