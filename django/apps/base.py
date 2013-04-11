@@ -45,10 +45,7 @@ class App(object):
         if not hasattr(self, 'db_prefix'):
             self.db_prefix = self.label
 
-        if '.' in self.name:
-            self.models_path = '%s.models' % self.name
-        else:
-            self.models_path = None
+        self.models_path = '%s.models' % self.name
 
         self.models = {}
 
