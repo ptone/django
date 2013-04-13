@@ -295,10 +295,10 @@ class AppStaticStorage(FileSystemStorage):
         """
         Returns a static file storage if available in the given app.
         """
-        # app is the actual app module
-        mod = import_module(app)
+        # app is the actual app class
+        mod = app.module
         mod_path = os.path.dirname(upath(mod.__file__))
-        location = os.path.join(app.name, self.source_dir)
+        location = os.path.join(mod_path, self.source_dir)
         super(AppStaticStorage, self).__init__(location, *args, **kwargs)
 
 
