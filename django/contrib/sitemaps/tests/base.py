@@ -32,5 +32,5 @@ class SitemapTestsBase(TestCase):
         TestModel.objects.create(name='Test Object')
 
     def tearDown(self):
-        Site._meta.app.installed = self.old_Site_meta_installed
+        Site._meta.installed = self.old_Site_meta_installed
         # Site._meta.app.installed = True
