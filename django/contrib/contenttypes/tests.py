@@ -225,7 +225,7 @@ class ContentTypesTests(TestCase):
             self.assertEqual("http://%s/users/john/" % get_current_site(request).domain,
                              response._headers.get("location")[1])
 
-        Site._meta.app.installed = False
+        Site._meta.installed = False
         response = shortcut(request, user_ct.id, obj.id)
         self.assertEqual("http://Example.com/users/john/",
                          response._headers.get("location")[1])
