@@ -121,6 +121,8 @@ class AppDirectoriesFinder(BaseFinder):
         # Mapping of app module paths to storage instances
         self.storages = SortedDict()
         for app in app_cache.loaded_apps:
+            if not app.installed:
+                continue
             app_storage = self.storage_class(app)
             if os.path.isdir(app_storage.location):
                 self.storages[app] = app_storage
