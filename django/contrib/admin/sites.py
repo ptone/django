@@ -375,7 +375,7 @@ class AdminSite(object):
                         app_dict[app_label]['models'].append(model_dict)
                     else:
                         app_dict[app_label] = {
-                            'name': app_cache.get_app_instance(app_label)._meta.verbose_name,
+                            'name': app_cache.get_app_instance(app_label).verbose_name,
                             'app_label': app_label,
                             'app_url': reverse('admin:app_list', kwargs={'app_label': app_label}, current_app=self.name),
                             'has_module_perms': has_module_perms,
