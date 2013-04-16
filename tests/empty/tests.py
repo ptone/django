@@ -1,9 +1,8 @@
 from __future__ import absolute_import
 
+from django.apps import app_cache
 from django.core.exceptions import ImproperlyConfigured
-from django.db.models.loading import get_app
 from django.test import TestCase
-from django.test.utils import override_settings
 from django.utils import six
 
 from .models import Empty
@@ -31,8 +30,17 @@ class NoModelTests(TestCase):
 
     It seemed like an appropriate home for it.
     """
-    @override_settings(INSTALLED_APPS=("empty.no_models",))
+    def setUp(self):
+        app_cache.load_app("empty.no_models", installed=True)
+
+    def tearDown(self):
+        app_cache.unload_app(app_label='no_models')
+
     def test_no_models(self):
         with six.assertRaisesRegex(self, ImproperlyConfigured,
-                    'App with label no_models is missing a models.py module.'):
-            get_app('no_models')
+                    'App with label no_models could not be found.'):
+            app_cache.get_models_module('no_models')
+
+    def test_no_models_emptyOK(self):
+        self.assertEquals(app_cache.get_models_module('no_models',
+            emptyOK=True), None)
