@@ -7,6 +7,7 @@ import os
 import pickle
 from threading import local
 
+from django.apps import app_cache
 from django.conf import settings
 from django.template import Template, Context
 from django.template.base import TemplateSyntaxError
@@ -907,19 +908,30 @@ class ResolutionOrderI18NTests(TestCase):
         self.assertTrue(msgstr in result, ("The string '%s' isn't in the "
             "translation of '%s'; the actual result is '%s'." % (msgstr, msgid, result)))
 
+class MockedApp(object):
+    installed = True
+    name = 'i18n.resolution'
+    module = None
+    @property
+    def path(self):
+        return os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 'resolution')
+
 class AppResolutionOrderI18NTests(ResolutionOrderI18NTests):
 
     def setUp(self):
-        self.old_installed_apps = settings.INSTALLED_APPS
-        settings.INSTALLED_APPS = ['i18n.resolution'] + list(settings.INSTALLED_APPS)
+        # TODO should this be a deep copy?
+        self.old_loaded_apps = app_cache.loaded_apps
+        app_cache.loaded_apps = [MockedApp()] + app_cache.loaded_apps
         super(AppResolutionOrderI18NTests, self).setUp()
 
     def tearDown(self):
-        settings.INSTALLED_APPS = self.old_installed_apps
+        app_cache.loaded_apps = self.old_loaded_apps
         super(AppResolutionOrderI18NTests, self).tearDown()
 
     def test_app_translation(self):
         self.assertUgettext('Date/time', 'APP')
+
 
 @override_settings(LOCALE_PATHS=extended_locale_paths)
 class LocalePathsResolutionOrderI18NTests(ResolutionOrderI18NTests):
