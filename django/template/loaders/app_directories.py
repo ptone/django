@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.template.base import TemplateDoesNotExist
 from django.template.loader import BaseLoader
-from django.utils._os import safe_join
+from django.utils._os import safe_join, upath
 from django.utils.importlib import import_module
 from django.utils import six
 
@@ -20,7 +20,11 @@ if not six.PY3:
     fs_encoding = sys.getfilesystemencoding() or sys.getdefaultencoding()
 app_template_dirs = []
 for app in app_cache.loaded_apps:
-    template_dir = os.path.join(app.path, 'templates')
+    if not app.installed:
+        continue
+    mod = app.module
+    mod_path = os.path.dirname(upath(mod.__file__))
+    template_dir = os.path.join(mod_path, 'templates')
     if os.path.isdir(template_dir):
         if not six.PY3:
             template_dir = template_dir.decode(fs_encoding)
