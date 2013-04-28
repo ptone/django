@@ -120,8 +120,12 @@ class AppCache(object):
                     if app.installed:
                         # TODO just app.__module__ ?
                         # path seems to be used in FS based loaders
-                        app.module = import_module(app.name)
-                        app.path = os.path.dirname(app.module.__file__)
+                        # why should module and path only be set if installed?
+                        # app.module = import_module(app.name)
+                        # app.path = os.path.dirname(app.module.__file__)
+                        pass
+                    app.module = import_module(app.name)
+                    app.path = os.path.dirname(app.module.__file__)
                     app.register_models()
                     post_load = getattr(app, 'post_load', None)
                     if post_load is not None and callable(post_load):
