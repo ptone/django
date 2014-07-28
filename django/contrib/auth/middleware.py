@@ -91,6 +91,16 @@ class RemoteUserMiddleware(object):
         if request.user.is_authenticated():
             if request.user.get_username() == self.clean_username(username, request):
                 return
+            else:
+                try:
+                    stored_backend = load_backend(request.session.get(
+                        auth.BACKEND_SESSION_KEY, ''))
+                    if isinstance(stored_backend, RemoteUserBackend):
+                        auth.logout(request)
+                except ImportError:
+                    # backend failed to load
+                    auth.logout(request)
+
         # We are seeing this user for the first time in this session, attempt
         # to authenticate the user.
         user = auth.authenticate(remote_user=username)
